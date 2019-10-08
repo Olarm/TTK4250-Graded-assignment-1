@@ -81,11 +81,10 @@ classdef IMMPDAF
             
             % calculate log likelihood ratios
             ll(1) = logPND + logClutter; % association loglikelihood ratio for no detection
-            for i = 1:M
-                for j = 1:m
-                    llCond(j) = obj.ekf.loglikelihood(Z(:,j), x(:,i), P(:,:,i)); %... calculate imm loglikelihood
-                    ll(j + 1) = ll(j + 1) + sprobs(i) * (logPD - logClutter + llCond(j)); %... association loglikelihood ratio for detection j
-                end
+            for j = 1:m
+                [supdprobs, xupd, Pupd, loglikelihood] = update(obj, z, sprobs, x, P);
+                llCond(j) = loglikelihood; %... calculate imm loglikelihood
+                ll(j + 1) = logPD - logClutter + llCond(j); %... association loglikelihood ratio for detection j
             end
         end
         
@@ -104,7 +103,7 @@ classdef IMMPDAF
            lls = obj.loglikelihoodRatios(Z, sprobs, x, P);
            
            % probabilities
-           beta = %... 
+           beta = exp(lls - logSumExp(lls));
         end
         
         function [sprobsupd, xupd, Pupd] = conditionalUpdate(obj, Z, sprobs, x, P)
@@ -130,16 +129,15 @@ classdef IMMPDAF
             Pupd = zeros([size(P), m + 1]);
             
             % undetected
-            sprobsupd(:, 1) = %... 
-            xupd(:, :, 1) = %...
-            Pupd(:, :, :, 1) = %...
+            sprobsupd(:, 1) = obj.imm.PI*sprobs; %... 
+            [xupd(:, :, 1), Pupd(:, :, :, 1)] = obj.imm.estimate(sprobs, x, P); %...
             
             % detected
             for j = 1:m 
-               [sprobsupd(:, j + 1), xupd(:, :, j + 1), Pupd(:, :, :, j + 1)] = %... update conditioned on measurement j
+               [sprobsupd(:, j + 1), xupd(:, :, j + 1), Pupd(:, :, :, j + 1), ~] = update(obj, Z(:,j), sprobs, x, P);%... update conditioned on measurement j
             end
         end
-        
+   
         function [sprobsred, xred, Pred] = reduceMixture(obj, beta, sprobs, x, P)
             % reduces a Gaussian mixture to a single Gauss
             % 
@@ -153,17 +151,28 @@ classdef IMMPDAF
             % Pred (n x n x M): the covariance of the mode mixtures
             
             M = size(sprobs, 1);
+            m = size(sprobs, 2);
+                     
+            joint = zeros(M, m); %.. Joint probability for mode and association (M x m + 1)
+            sprobsred = zeros(M, 1); %... marginal mode probabilities (M x 1)
             
-            joint = %.. Joint probability for mode and association (M x m + 1)
-            sprobsred = %... marginal mode probabilities (M x 1)
-            betaCondS = %... association probabilites conditionend on the mode probabilites (M x m + 1)
+            for i=1:M
+                for j=1:n
+                    joint(i, j) = sprobs(i,j)*beta(j);
+                end
+                sprobsred(i) = sum(joint(:,i));
+            end
             
+            
+            betaCondS = joint \ sprobsred; %... association probabilites conditionend on the mode probabilites (M x m + 1)
+            
+
             xSize = size(x);
             PSize = size(P);
             xred = zeros(xSize(1:2));
             Pred = zeros(PSize(1:3));
             for s = 1:M
-                [xred(:, s), Pred(:, : ,s)] = %... mean and variance per mode
+                [xred(:, s), Pred(:, : ,s)] = reduceGaussMix(betaCondS, x, P);%... mean and variance per mode
             end
         end
         
@@ -180,17 +189,17 @@ classdef IMMPDAF
             % Pupd (n x n): the covariance of the PDAF update
             
             % remove the not gated measurements from consideration
-            gated = %...
+            gated = gate(Z, sprobs, x, P);%...
             Zg = Z(:, gated);
             
             % find association probabilities
-            beta = %...
+            beta = associationProbabilities(Zg, sprobs, x, P); %...
             
             % find the mixture components (conditional update)
-            [sprobscu, xcu, Pcu] = %...
+            [sprobscu, xcu, Pcu] = conditionalUpdate(Zg, sprobs, x, P);%...
             
             % reduce mixture
-            [sprobsupd, xupd, Pupd] = %...
+            [sprobsupd, xupd, Pupd] = reduceMixture(beta, sprobscu, xcu, Pcu);%...
         end
     end
 end
