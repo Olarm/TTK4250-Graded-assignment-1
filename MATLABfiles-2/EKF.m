@@ -56,7 +56,7 @@ classdef EKF
 
             xupd = x + Wk * vk;
             
-            Pupd = (I - Wk * Hk) * P * (I - Wk * Hk)' + Wk * obj.R * Wk';
+            Pupd = (I - Wk * Hk) * P * (I - Wk * Hk)' + Wk * obj.R() * Wk';
         end
 
         function NIS = NIS(obj, z, x, P)

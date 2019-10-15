@@ -30,7 +30,7 @@ classdef PDAF
             % xp (n x 1): predicted mean
             % Pp (n x n): predicted covariance
             
-            [xp, Pp] = obj.ekf.predict(obj, x, P, Ts); %...
+            [xp, Pp] = obj.ekf.predict(x, P, Ts); %...
         end
         
         function gated = gate(obj, Z, x, P)
@@ -136,7 +136,7 @@ classdef PDAF
             % xred (n x 1): the mean of the mixture
             % Pred (n x n): the covariance of the mixture
                         
-            [xred, Pred] = reduceGaussMix(beta, xupd, Pupd); %... % Hint: reduceGaussMix from assignment 3
+            [xred, Pred] = reduceGaussMix(beta, x, P); %... % Hint: reduceGaussMix from assignment 3
         end
         
         function [xupd, Pupd] = update(obj, Z, x, P)
@@ -155,13 +155,13 @@ classdef PDAF
             Zg = Z(:, gated);
             
             % find association probabilities
-            beta = associationProbabilities(Zg, x, P); % ...
+            beta = obj.associationProbabilities(Zg, x, P); % ...
             
             % find the mixture components pdfs
-            [xcu, Pcu] = conditionalUpdate(obj, Zg, x, P); %...
+            [xcu, Pcu] = obj.conditionalUpdate(Zg, x, P); %...
             
             % reduce mixture
-            [xupd, Pupd] = reduceMixture(beta, xcu, Pcu); %...
+            [xupd, Pupd] = obj.reduceMixture(beta, xcu, Pcu); %...
         end
     end
 end
