@@ -42,7 +42,7 @@ classdef EKF
             Hk = obj.H(x);
             
             vk = z - obj.h(x);
-            Sk = Hk*P*Hk' + obj.R;
+            Sk = Hk*P*Hk' + obj.R();
         end
 
         function [xupd, Pupd] = update(obj, z, x, P)

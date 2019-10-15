@@ -45,16 +45,9 @@ classdef PDAF
             m = size(Z, 2);
             gated = false(m, 1);
             gSquared = obj.gateSize;
-            
-            [xp, Sk] = predict(x, P, Ts);
-            
+                        
             for j = 1:m
-                value = (Z(:,j)-xp)'*inv(Sk)*(Z(:,j)-xp);
-                if value <=  gSquared
-                    gated(j) = true; %...
-                else
-                    gated(j) = false;
-                end
+                gated(j) = obj.ekf.NIS(Z(:,j), x, P) <= gSquared; 
             end
         end
         
