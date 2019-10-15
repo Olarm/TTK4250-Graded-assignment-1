@@ -11,7 +11,7 @@ function [xmix, Pmix] = reduceGaussMix(w, x, P)
      
     w = w(:);
     M = numel(w);
-    n = size(x, 1);
+    n = size(x, 2);
 
     %% implementation
     % allocate
