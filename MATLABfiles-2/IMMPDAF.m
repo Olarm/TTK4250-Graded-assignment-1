@@ -78,11 +78,10 @@ classdef IMMPDAF
             % allocate
             llCond = zeros(m, 1); % log(l^a),
             ll = zeros(m + 1, 1);
-            
             % calculate log likelihood ratios
             ll(1) = logPND + logClutter; % association loglikelihood ratio for no detection
             for j = 1:m
-                [supdprobs, xupd, Pupd, loglikelihood] = update(obj, z, sprobs, x, P);
+                [supdprobs, xupd, Pupd, loglikelihood] = obj.imm.update(Z(:,j), sprobs, x, P);
                 llCond(j) = loglikelihood; %... calculate imm loglikelihood
                 ll(j + 1) = logPD - logClutter + llCond(j); %... association loglikelihood ratio for detection j
             end
@@ -130,11 +129,12 @@ classdef IMMPDAF
             
             % undetected
             sprobsupd(:, 1) = obj.imm.PI*sprobs; %... 
-            [xupd(:, :, 1), Pupd(:, :, :, 1)] = obj.imm.estimate(sprobs, x, P); %...
+            xupd(:, :, 1) = x; %...
+            Pupd(:, :, :, 1) = P; %...
             
             % detected
             for j = 1:m 
-               [sprobsupd(:, j + 1), xupd(:, :, j + 1), Pupd(:, :, :, j + 1), ~] = update(obj, Z(:,j), sprobs, x, P);%... update conditioned on measurement j
+                [sprobsupd(:, j + 1), xupd(:, :, j + 1), Pupd(:, :, :, j + 1), ~] = obj.imm.update(Z(:,j), sprobs, x, P);%... update conditioned on measurement j
             end
         end
    
@@ -157,22 +157,23 @@ classdef IMMPDAF
             sprobsred = zeros(M, 1); %... marginal mode probabilities (M x 1)
             
             for i=1:M
-                for j=1:n
+                for j=1:m
                     joint(i, j) = sprobs(i,j)*beta(j);
                 end
-                sprobsred(i) = sum(joint(:,i));
+                sprobsred(i) = sum(joint(i,:));
             end
             
             
-            betaCondS = joint \ sprobsred; %... association probabilites conditionend on the mode probabilites (M x m + 1)
+            %betaCondS = joint \ sprobsred; %... association probabilites conditionend on the mode probabilites (M x m + 1)
+            betaCondS(1,:) = joint(1,:)./sprobsred(1);
+            betaCondS(2,:) = joint(2,:)./sprobsred(2);
             
-
             xSize = size(x);
             PSize = size(P);
             xred = zeros(xSize(1:2));
             Pred = zeros(PSize(1:3));
             for s = 1:M
-                [xred(:, s), Pred(:, : ,s)] = reduceGaussMix(betaCondS(:, s), x(:,:,s), P(:,:,:,s));%... mean and variance per mode
+                [xred(:, s), Pred(:, : ,s)] = reduceGaussMix(betaCondS(s, :), x(:,s,:), P(:,:,s,:));%... mean and variance per mode
             end
         end
         
@@ -197,7 +198,7 @@ classdef IMMPDAF
             
             % find the mixture components (conditional update)
             [sprobscu, xcu, Pcu] = obj.conditionalUpdate(Zg, sprobs, x, P);%...
-            
+        
             % reduce mixture
             [sprobsupd, xupd, Pupd] = obj.reduceMixture(beta, sprobscu, xcu, Pcu);%...
         end
