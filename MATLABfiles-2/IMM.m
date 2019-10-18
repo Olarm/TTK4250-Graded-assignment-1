@@ -59,7 +59,7 @@ classdef IMM
            
            % mix for each mode,
            for i = 1:obj.M
-                [xmix(:, s), Pmix(:, :, s)] = reduceGaussMix(smixprobs(s, :),x, P);
+                [xmix(:, i), Pmix(:, :, i)] = reduceGaussMix(smixprobs(i, :),x, P);
            end
        end
        
@@ -121,7 +121,7 @@ classdef IMM
            
            % mode matched update and likelihood
            for s = 1:obj.M
-                filter = obj.ModeFilters{s};
+                filter = obj.modeFilters{s};
                 [xupd(:, s), Pupd(:,:,s)] = filter.update(z, x(:,s), P(:,:,s));
                 logLambdas = filter.loglikelihood(z, x(:,s), P(:,:,s));
            end

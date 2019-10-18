@@ -11,12 +11,14 @@ function [xmix, Pmix] = reduceGaussMix(w, x, P)
      
     w = w(:);
     M = numel(w);
-    n = size(x, 2);
+    n = size(x, 1);
+    %m = size(x, 2);
+    m = 1;
 
     %% implementation
     % allocate
-    xmix = zeros(n, 1);
-    Pmix = zeros(n, n);
+    xmix = zeros(n, m);
+    Pmix = zeros(n, n, m);
     
     % mean
     for i = 1:M

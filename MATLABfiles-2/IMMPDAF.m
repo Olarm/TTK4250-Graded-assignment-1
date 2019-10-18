@@ -45,7 +45,7 @@ classdef IMMPDAF
             %
             % gated (m x 1): gated(j) = true if measurement j is within
             %       gate of at least one mode
-            
+ 
             m = size(Z, 2);
             gated = false(m, 1);
             gSquared = obj.gateSize;
@@ -82,7 +82,7 @@ classdef IMMPDAF
             % calculate log likelihood ratios
             ll(1) = logPND + logClutter; % association loglikelihood ratio for no detection
             for j = 1:m
-                [supdprobs, xupd, Pupd, loglikelihood] = update(obj, z, sprobs, x, P);
+                [supdprobs, xupd, Pupd, loglikelihood] = obj.imm.update(Z(:,j), sprobs, x, P);
                 llCond(j) = loglikelihood; %... calculate imm loglikelihood
                 ll(j + 1) = logPD - logClutter + llCond(j); %... association loglikelihood ratio for detection j
             end
@@ -129,12 +129,16 @@ classdef IMMPDAF
             Pupd = zeros([size(P), m + 1]);
             
             % undetected
-            sprobsupd(:, 1) = obj.imm.PI*sprobs; %... 
-            [xupd(:, :, 1), Pupd(:, :, :, 1)] = obj.imm.estimate(sprobs, x, P); %...
+            sprobsupd(:, 1) = obj.imm.PI*sprobs; %...
+            %[xupd(:, :, 1), Pupd(:, :, :, 1)] = obj.predict(sprobs, x, P); %...
+            xupd(:, :, 1) = x;
+            Pupd(:, :, :, 1) = P;
+            
+            
             
             % detected
             for j = 1:m 
-               [sprobsupd(:, j + 1), xupd(:, :, j + 1), Pupd(:, :, :, j + 1), ~] = update(obj, Z(:,j), sprobs, x, P);%... update conditioned on measurement j
+               [sprobsupd(:, j + 1), xupd(:, :, j + 1), Pupd(:, :, :, j + 1), ~] = obj.imm.update(Z(:,j), sprobs, x, P);%... update conditioned on measurement j
             end
         end
    
@@ -149,7 +153,7 @@ classdef IMMPDAF
             % sprobsred (M x 1): the marginal mode probabilities 
             % xred (n x M): the mean of the mode mixtures
             % Pred (n x n x M): the covariance of the mode mixtures
-            
+            betaCondS = zeros(2, size(beta, 1));
             M = size(sprobs, 1);
             m = size(sprobs, 2);
                      
@@ -157,22 +161,22 @@ classdef IMMPDAF
             sprobsred = zeros(M, 1); %... marginal mode probabilities (M x 1)
             
             for i=1:M
-                for j=1:n
+                for j=1:m
                     joint(i, j) = sprobs(i,j)*beta(j);
                 end
-                sprobsred(i) = sum(joint(:,i));
+                sprobsred(i) = sum(joint(i, :));
             end
             
+            %betaCondS = joint \ sprobsred %... association probabilites conditionend on the mode probabilites (M x m + 1)
+            betaCondS(1,:) = joint(1,:)./sprobsred(1);
+            betaCondS(2,:) = joint(2,:)./sprobsred(2);
             
-            betaCondS = joint \ sprobsred; %... association probabilites conditionend on the mode probabilites (M x m + 1)
-            
-
             xSize = size(x);
             PSize = size(P);
             xred = zeros(xSize(1:2));
             Pred = zeros(PSize(1:3));
             for s = 1:M
-                [xred(:, s), Pred(:, : ,s)] = reduceGaussMix(betaCondS(:, s), x(:,:,s), P(:,:,:,s));%... mean and variance per mode
+                [xred(:, s), Pred(:, : ,s)] = reduceGaussMix(betaCondS(s, :), x(:,s,:), P(:,:,s,:));%... mean and variance per mode
             end
         end
         
@@ -191,7 +195,6 @@ classdef IMMPDAF
             % remove the not gated measurements from consideration
             gated = obj.gate(Z, sprobs, x, P);%...
             Zg = Z(:, gated);
-            
             % find association probabilities
             beta = obj.associationProbabilities(Zg, sprobs, x, P); %...
             
