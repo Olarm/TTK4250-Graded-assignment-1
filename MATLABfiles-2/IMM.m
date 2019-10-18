@@ -118,7 +118,6 @@ classdef IMM
            xupd = zeros(size(x));
            Pupd = zeros(size(P));
            logLambdas = zeros(obj.M, 1);
-           
            % mode matched update and likelihood
            for s = 1:obj.M
                 filter = obj.modeFilters{s};

@@ -50,7 +50,7 @@ classdef EKF
             [vk, Sk] = obj.innovation(z, x, P);
             Hk = obj.H(x);
             I = eye(size(P));
-            
+
             Wk = P * Hk' / Sk;
             xupd = x + Wk * vk;
             

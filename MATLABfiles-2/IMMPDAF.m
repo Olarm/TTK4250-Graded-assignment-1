@@ -78,7 +78,6 @@ classdef IMMPDAF
             % allocate
             llCond = zeros(m, 1); % log(l^a),
             ll = zeros(m + 1, 1);
-            
             % calculate log likelihood ratios
             ll(1) = logPND + logClutter; % association loglikelihood ratio for no detection
             for j = 1:m
@@ -134,11 +133,9 @@ classdef IMMPDAF
             xupd(:, :, 1) = x;
             Pupd(:, :, :, 1) = P;
             
-            
-            
             % detected
             for j = 1:m 
-               [sprobsupd(:, j + 1), xupd(:, :, j + 1), Pupd(:, :, :, j + 1), ~] = obj.imm.update(Z(:,j), sprobs, x, P);%... update conditioned on measurement j
+                [sprobsupd(:, j + 1), xupd(:, :, j + 1), Pupd(:, :, :, j + 1), ~] = obj.imm.update(Z(:,j), sprobs, x, P);%... update conditioned on measurement j
             end
         end
    
@@ -165,6 +162,7 @@ classdef IMMPDAF
                     joint(i, j) = sprobs(i,j)*beta(j);
                 end
                 sprobsred(i) = sum(joint(i, :));
+
             end
             
             %betaCondS = joint \ sprobsred %... association probabilites conditionend on the mode probabilites (M x m + 1)
@@ -200,7 +198,7 @@ classdef IMMPDAF
             
             % find the mixture components (conditional update)
             [sprobscu, xcu, Pcu] = obj.conditionalUpdate(Zg, sprobs, x, P);%...
-            
+        
             % reduce mixture
             [sprobsupd, xupd, Pupd] = obj.reduceMixture(beta, sprobscu, xcu, Pcu);%...
         end
