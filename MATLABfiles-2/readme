@@ -1,3 +1,3 @@
 Log for assignment 1
 
-When choosing values for q, r and the rest of the parameters we started with values from the PDAF version that gave good results. From this starting point we tried to find values for ANEES that was inside the chi-squared boundary. We found values that was inside this boundary and that gave a good tracking result.
+When choosing values for q, r and the rest of the parameters we started with values from the Individual EKF-PDAs part that gave good results. From this starting point we tried to find values for ANEES that was inside the chi-squared boundary. We found values that was inside this boundary and that gave a good tracking result. 
