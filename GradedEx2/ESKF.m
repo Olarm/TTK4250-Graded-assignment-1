@@ -68,17 +68,17 @@ classdef ESKF
             R = quat2rotmat(quat);
             
             % predictions
-            posPred = % 
-            velPred = %
+            posPred = pos + vel*Ts + Ts^2/2*(R(acc) + obj.g);% 
+            velPred = vel + (R(acc) + obj.g)*Ts;%
             
-            dq = %
-            quatPred = %
+            dq = 1/2*quatProd(quat, omega)*Ts;%
+            quatPred = quat + dq;%
             
-            accBiasPred = % 
-            gyroBiasPred = %
+            accBiasPred = -(1/obj.pAcc)*obj.Sg*accBias;%  is eye needed?
+            gyroBiasPred = -(1/obj.pGyro)*obj.Sg*gyroBias;%
             
             % make sure quaternion is normalized
-            quatPred = % 
+            quatPred = quatPred/norm(quatPred);% 
             
             % concatenate into the predicted nominal state
             xnompred = [posPred;
@@ -104,13 +104,13 @@ classdef ESKF
             A = zeros(15, 15);
             
             % instert the different terms
-            A(1:3, 4:6) = %...; % vel to pos
-            A(4:6, 7:9) = %...; % attitude to vel
-            A(4:6, 10:12) = %...; % acc bias to vel
-            A(7:9, 7:9) = %...; % attitude to attitude
-            A(7:9, 13:15) = %...; % gyro bias to attitude
-            A(10:12, 10:12) = %...; % acc bias to acc bias
-            A(13:15, 13:15) = %...; % gyro bias to gyro bias
+            A(1:3, 4:6) = obj.Sg;%...; % vel to pos
+            A(4:6, 7:9) = -R*crossProdMat(acc); %...; % attitude to vel
+            A(4:6, 10:12) = -R; %...; % acc bias to vel
+            A(7:9, 7:9) = crossProdMat(acc); %...; % attitude to attitude
+            A(7:9, 13:15) = -obj.Sg; %...; % gyro bias to attitude
+            A(10:12, 10:12) = -(1/obj.pAcc)*obj.Sg; %...; % acc bias to acc bias
+            A(13:15, 13:15) = -(1/obj.pGyro)*obj.Sg; %...; % gyro bias to gyro bias
             
             % bias corrections
             A(4:6, 10:12) = A(4:6, 10:12) * obj.Sa;
@@ -128,7 +128,7 @@ classdef ESKF
             Rot = quat2rotmat(xnom(7:10));
             
             % create the input matrix
-            G = % 
+            G = vertcat(zeros(3, 12), blkdiag(Rot, -obj.Sg, obj.Sg, obj.Sg));% 
         end
         
         function [Ad, GQGd] = discreteErrMats(obj, xnom, acc, omega, Ts)
@@ -148,12 +148,13 @@ classdef ESKF
             G = obj.Gerr(xnom);
             
             % use Van Loan
-            V = %; % the matrix exponent in Van Loan
+            V = Ts*[-A, G*obj.Qerr*G';
+                0, A'];%; % the matrix exponent in Van Loan
             VanLoanMat = expm(V); % can potentially be slow
              
             % exctract relevat matrices.
-            Ad = VanLoanMat(..., ...);
-            GQGd = ... * VanLoanMat(..., ...);    
+            Ad = VanLoanMat(16:30, 16:30);
+            GQGd = Qd * VanLoanMat(1:15, 16:30);    
         end
         
         function Ppred = predictCovariance(obj, xnom, P, acc, omega, Ts)
@@ -171,7 +172,7 @@ classdef ESKF
             [Ad, GQGd] = obj.discreteErrMats(xnom, acc, omega, Ts);
             
             % KF covariance predict
-            Ppred = %
+            Ppred = Ad*P*Ad' + GQGd;%
         end
         
         function [xnompred, Ppred] = predict(obj, xnom, P, zAcc, zGyro, Ts)
@@ -195,12 +196,12 @@ classdef ESKF
             gyroBias = obj.Sg * xnom(14:16);
 
             % debias measurements
-            acc = ...; % expected value of accelleration in body given IMU measurements
-            omega = ...; % expected value of rotation rate in body given IMU measurements
+            acc = zAcc - accBias; % expected value of accelleration in body given IMU measurements
+            omega = zGyro - gyroBias; % expected value of rotation rate in body given IMU measurements
             
             % perform prediction using the above functions
-            xnompred = ...;
-            Ppred = ...;
+            xnompred = predictNominal(xnom, acc, omega, Ts);
+            Ppred = predictCovariance(xnom, P, acc, omega, Ts);
         end
         
         function [xinjected, Pinjected] = inject(~, xnom, deltaX, P)
@@ -213,14 +214,16 @@ classdef ESKF
             % Pinjected (15 x 15): error state covariance after injection
             
             % Inject error state into nominal state (quaternions cannot be added)
-            xinjected = ...;
+            xinjected(1:6 11:16) = xnom(1:6 11:16) + deltaX(1:6 10:15);
+            xinjected(7:10) = quatProd(xnom(7:10), [1; deltaX(7:9)]); 
             
             % make sure quaterion is normalized
-            ...;
+            xinjected(7:10) = xinjected(7:10)/norm(xinjected(7:10));
                 
             % compensate for injection in the covariance
-            Ginject = ...;
-            Pinjected = ...;
+            S = crossProdMat(deltaX(7:9));
+            Ginject = blkdiag(eye(6), (obj.Sg - S), eye(6));
+            Pinjected = Ginject*P*Ginject';
         end
         
         function [v, S] = innovationGNSS(~, xnom, P, zGNSSpos, RGNSS, leverarm)
@@ -236,10 +239,9 @@ classdef ESKF
             % v (3 x 1): innovation
             % S (3 x 3): innovation covariance
             
-            H = ...; 
-            
+            H = horzcat(eye(3), zeros(3, 13)); 
             % innovation calculation
-            v = ...; % innovation
+            v = zGNSSpos - H*xnom; % innovation
             
             % in case of a specified lever arm
             if nargin > 5
@@ -248,7 +250,7 @@ classdef ESKF
                 v = v - R * leverarm;
             end
             
-            S = ...; % Innovation covariance
+            S = H*P*H' + RGNSS; % Innovation covariance
         end
         
         function [xinjected, Pinjected] = updateGNSS(obj, xnom, P, zGNSSpos, RGNSS, leverarm)
@@ -273,7 +275,7 @@ classdef ESKF
             
             [innov, S] = obj.innovationGNSS(xnom, P, zGNSSpos, RGNSS, leverarm);
             % measurement matrix
-            H = ...; 
+            H = horzcat(eye(3), zeros(3, 13));  
             
             % in case of a specified lever arm
             if nargin > 5
@@ -282,12 +284,12 @@ classdef ESKF
             end
             
             % KF error state update
-            W = ...; % Kalman gain
-            deltaX = ...; 
-            Pupd = ...; 
+            W = P*H'/S; % Kalman gain
+            deltaX = W(zGNSSpos - H*xnom); 
+            Pupd = (eye(15) - W*H)*P; 
             
             % error state injection
-            [xinjected, Pinjected] = ...; 
+            [xinjected, Pinjected] = inject(xnom, deltaX, Pupd); 
         end
         
         
@@ -305,7 +307,7 @@ classdef ESKF
                 leverarm = zeros(3,1);
             end
             [innov, S] = obj.innovationGNSS(xnom, P, zGNSSpos, RGNSSpos, leverarm);
-            NIS = ...;
+            NIS = innov'*S\innov;
         end
         
         function deltaX = deltaX(~, xnom, xtrue)
@@ -319,15 +321,15 @@ classdef ESKF
             %                   addition)
            
            % pos and vel
-           deltaPos = ...;
-           deltaVel = ...;
+           deltaPos = xtrue(1:3) - xnom(1:3);
+           deltaVel = xtrue(4:6) - xnom(4:6);
            
             % attitude (just some suggested steps, you are free to change)
-           qConj = ...; % conjugated nominal quaternion
-           deltaQuat = ...; % the error quaternion
-           deltaTheta = ...; % the error state
+           qConj = conj(xnom(7:10)); % conjugated nominal quaternion
+           deltaQuat = quatProd(qConj, xtrue(7:10)); % the error quaternion
+           deltaTheta = imag(deltaQuat); % the error state
            
-           deltaBias = ...;
+           deltaBias = xtrue(11:16) - xnom(11:16);
            
            deltaX = [deltaPos; deltaVel; deltaTheta; deltaBias];
         end
@@ -344,12 +346,12 @@ classdef ESKF
             
             deltaX = obj.deltaX(xnom, xtrue);
             
-            NEES = ...;
-            NEESpos = ...;
-            NEESvel = ...;
-            NEESatt = ...;
-            NEESaccbias = ...;
-            NEESgyrobias = ...;
+            NEES = (deltaX)'*(P\deltaX);
+            NEESpos = deltaX(1:3)'*(P(1:3, 1:3)\deltaX(1:3));
+            NEESvel = deltaX(4:6)'*(P(4:6, 4:6)\deltaX(4:6));
+            NEESatt = deltaX(7:9)'*(P(7:9, 7:9)\deltaX(7:9));
+            NEESaccbias = deltaX(10:12)'*(P(10:12, 10:12)\deltaX(10:12));
+            NEESgyrobias = deltaX(13:15)'*(P(13:15, 13:15)\deltaX(13:15));
         end
     end
 end
