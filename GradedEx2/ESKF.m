@@ -132,7 +132,7 @@ classdef ESKF
             I = eye(3);
             
             % create the input matrix
-            G = vertcat(zeros(3, 12), blkdiag(Rot, -I, I, I));% 
+            G = vertcat(zeros(3, 12), blkdiag(-Rot, -I, I, I));% 
         end
         
         function [Ad, GQGd] = discreteErrMats(obj, xnom, acc, omega, Ts)

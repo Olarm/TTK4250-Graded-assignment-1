@@ -4,16 +4,16 @@ steps = size(zAcc,2);
 
 %% Measurement noise
 % GNSS Position  measurement
-p_std = [1, 1, 1]'; % Measurement noise
+p_std = [1000, 1000, 1000]'; % Measurement noise
 RGNSS = diag(p_std.^2);
 
 % accelerometer
-qA = 0.1^2; % accelerometer measurement noise covariance
-qAb = 0.1^2; % accelerometer bias driving noise covariance
+qA = 0.01^2; % accelerometer measurement noise covariance
+qAb = 0.01^2; % accelerometer bias driving noise covariance
 pAcc = 1; % accelerometer bias reciprocal time constant
 
-qG = 0.1^2; % gyro measurement noise covariance
-qGb = 0.1^2;  % gyro bias driving noise covariance
+qG = 0.01^2; % gyro measurement noise covariance
+qGb = 0.01^2;  % gyro bias driving noise covariance
 pGyro = 1; % gyrp bias time constant
 
 
@@ -48,7 +48,7 @@ GNSSk = 1;
 for k = 1:N
     if  timeIMU(k) >= timeGNSS(GNSSk)
         NIS(GNSSk) = eskf.NISGNSS(xpred(:,k), Ppred(:,:,k), zGNSS(:,GNSSk), RGNSS);
-        [xest(:, k), Pest(:, :, k)] = eskf.predict(xpred(:,k), Ppred(:,:,k), zAcc(:,k), zGyro(:,k), dt);
+        [xest(:, k), Pest(:, :, k)] = eskf.updateGNSS(xpred(:,k), Ppred(:,:,k), zGNSS(:,GNSSk), RGNSS);
         GNSSk = GNSSk  + 1;
         
         % sanity check, remove for some minor speed
@@ -62,11 +62,11 @@ for k = 1:N
     end
     
     deltaX(:, k) = eskf.deltaX(xest(:,k), xtrue(:,k));
-    [NEES(:, k), NEESpos(:, k), NEESvel(:, k), NEESatt(:, k), NEESaccbias(:, k), NEESgyrobias(:, k)] = ...
-        eskf.NEES(xest(:,k), Pest(:,:,k), xtrue(:,k));
+    %[NEES(:, k), NEESpos(:, k), NEESvel(:, k), NEESatt(:, k), NEESaccbias(:, k), NEESgyrobias(:, k)] = ...
+        %eskf.NEES(xest(:,k), Pest(:,:,k), xtrue(:,k));
     
     if k < N
-        [xpred(:, k+1),  Ppred(:, :, k+1)] = eskf.updateGNSS(xest(:,k), Pest(:,:,k), zGNSS(:,GNSSk), RGNSS);
+        [xpred(:, k+1),  Ppred(:, :, k+1)] = eskf.predict(xest(:,k), Pest(:,:,k), zAcc(:,k), zGyro(:,k), dt);
         % sanity check, remove for speed
         if any(any(~isfinite(Ppred(:, :, k + 1))))
            error('not finite Ppred at time %d', k + 1)
