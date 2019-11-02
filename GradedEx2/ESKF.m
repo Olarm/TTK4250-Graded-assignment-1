@@ -74,8 +74,8 @@ classdef ESKF
             dq = Ts * omega; %1/2 * quatProd(quat, omega) * Ts;
             quatPred = quatProd(quat, euler2quat(dq));%[cos(norm(dq)/2); dq/norm(dq)*sin(norm(dq)/2)]);
             
-            accBiasPred = -(1/obj.pAcc)*obj.Sg*accBias;%  is eye needed?
-            gyroBiasPred = -(1/obj.pGyro)*obj.Sg*gyroBias;%
+            accBiasPred = -(1/obj.pAcc)*eye(3)*accBias;%  is eye needed?
+            gyroBiasPred = -(1/obj.pGyro)*eye(3)*gyroBias;%
             
             % make sure quaternion is normalized
             quatPred = quatPred/norm(quatPred);% 
@@ -297,7 +297,7 @@ classdef ESKF
             
             % KF error state update
             W = P * H' / S; % Kalman gain
-            deltaX = W * (zGNSSpos - H*[xnom(1:6); quat2eul(xnom(7:10)); xnom(11:16)]); 
+            deltaX = W * innov; 
             Pupd = (eye(15) - W * H) * P; 
             
             % error state injection
