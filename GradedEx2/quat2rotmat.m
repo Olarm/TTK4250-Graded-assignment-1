@@ -1,4 +1,7 @@
-function R = quat2rotmat(quat)  
+function R = quat2rotmat(quat) 
+    if abs(norm(quat)-1) > 0.0001
+        error('Quaternion length not 1: %d', norm(quat));
+    end
     eta = quat(1);
     e = quat(2:4);          % n
     S = crossProdMat(e);

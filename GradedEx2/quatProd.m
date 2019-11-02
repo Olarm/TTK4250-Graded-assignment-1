@@ -8,6 +8,6 @@ function qprod = quatProd(ql, qr)
         qr = [0; qr];
     end
     
-    qprod = [ql(1)*qr(1) + ql(2:4)'*qr(2:4);
+    qprod = [ql(1)*qr(1) - ql(2:4)'*qr(2:4);
         qr(2:4)*ql(1) + ql(2:4)*qr(1) + crossProdMat(ql(2:4))*qr(2:4)];%
 end
