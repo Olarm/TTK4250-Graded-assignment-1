@@ -227,7 +227,7 @@ classdef ESKF
             
             % Inject error state into nominal state (quaternions cannot be added)
             xinjected([1:6 11:16]) = xnom([1:6 11:16]) + deltaX([1:6 10:15]);
-            xinjected(7:10) = quatProd(xnom(7:10), [1; deltaX(7:9)]); 
+            xinjected(7:10) = quatProd(xnom(7:10), euler2quat(deltaX(7:9))); 
             
             % make sure quaterion is normalized
             xinjected(7:10) = xinjected(7:10)/norm(xinjected(7:10));
@@ -253,7 +253,7 @@ classdef ESKF
             
             H = horzcat(eye(3), zeros(3, 12)); 
             % innovation calculation
-            v = zGNSSpos - H*xnom([1:6 8:16]); % innovation
+            v = zGNSSpos - H*[xnom(1:6); quat2eul(xnom(7:10)); xnom(11:16)]; % innovation
             
             % in case of a specified lever arm
             if nargin > 5
@@ -297,7 +297,7 @@ classdef ESKF
             
             % KF error state update
             W = P * H' / S; % Kalman gain
-            deltaX = W * (zGNSSpos - H*xnom([1:6 8:16])); 
+            deltaX = W * (zGNSSpos - H*[xnom(1:6); quat2eul(xnom(7:10)); xnom(11:16)]); 
             Pupd = (eye(15) - W * H) * P; 
             
             % error state injection

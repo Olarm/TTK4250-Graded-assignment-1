@@ -1,4 +1,5 @@
 function eul = quat2eul(q)
+
 qSquared = q.^2;
 qS = qSquared;
 n = size(q, 2);

@@ -4,17 +4,17 @@ steps = size(zAcc,2);
 
 %% Measurement noise
 % GNSS Position  measurement
-p_std = [1, 1, 1]'; % Measurement noise
+p_std = [100, 100, 100]'; % Measurement noise
 RGNSS = diag(p_std.^2);
 
 % accelerometer
-qA = 1^2; % accelerometer measurement noise covariance
-qAb = 1^2; % accelerometer bias driving noise covariance
-pAcc = 1; % accelerometer bias reciprocal time constant
+qA = 0.5^2; % accelerometer measurement noise covariance
+qAb = 0.5^2; % accelerometer bias driving noise covariance
+pAcc = 1000; % accelerometer bias reciprocal time constant
 
-qG = 1^2; % gyro measurement noise covariance
-qGb = 1^2;  % gyro bias driving noise covariance
-pGyro = 1; % gyrp bias time constant
+qG = 0.5^2; % gyro measurement noise covariance
+qGb = 0.5^2;  % gyro bias driving noise covariance
+pGyro = 1000; % gyrp bias time constant
 
 
 %% Estimator
@@ -43,7 +43,7 @@ Ppred(10:12, 10:12, 1) = eye(3);
 Ppred(13:15, 13:15, 1) = eye(3);
 
 %% run
-N = 90000;
+N = 10000;
 GNSSk = 1;
 for k = 1:N
     if  timeIMU(k) >= timeGNSS(GNSSk)
