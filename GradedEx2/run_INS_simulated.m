@@ -4,7 +4,7 @@ steps = size(zAcc,2);
 
 %% Measurement noise
 % GNSS Position  measurement
-p_std = [10, 10, 10]'; % Measurement noise
+p_std = [10000, 10000, 10000]'; % Measurement noise
 RGNSS = diag(p_std.^2);
 
 % accelerometer

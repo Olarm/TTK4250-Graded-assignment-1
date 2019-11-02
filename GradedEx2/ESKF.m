@@ -68,11 +68,11 @@ classdef ESKF
             R = quat2rotmat(quat);
             
             % predictions
-            posPred = pos + vel * Ts + Ts^2/2 * (R * acc + obj.g);% 
-            velPred = vel + (R * acc + obj.g) * Ts;%
+            posPred = pos + Ts * vel + Ts^2/2 * (R * (acc) + obj.g);%  obj.g skal vere med?
+            velPred = vel + Ts * (R * (acc) + obj.g);%
             
-            dq = 1/2 * quatProd(quat, omega) * Ts;%
-            quatPred = quat + dq;%
+            dq = Ts * omega; %1/2 * quatProd(quat, omega) * Ts;
+            quatPred = quatProd(quat, euler2quat(dq));%[cos(norm(dq)/2); dq/norm(dq)*sin(norm(dq)/2)]);
             
             accBiasPred = -(1/obj.pAcc)*obj.Sg*accBias;%  is eye needed?
             gyroBiasPred = -(1/obj.pGyro)*obj.Sg*gyroBias;%

@@ -1,4 +1,11 @@
 function qprod = quatProd(ql, qr)
+    if abs(norm(ql)-1) > 0.0001
+        error('Quaternion_l length not 1: %d', norm(ql));
+    end
+    if abs(norm(qr)-1) > 0.0001
+        error('Quaternion_r length not 1: %d', norm(qr));
+    end
+
 
     if numel(ql) == 3 % assume pure quat
         ql = [0; ql];
