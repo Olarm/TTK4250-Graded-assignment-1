@@ -4,17 +4,17 @@ steps = size(zAcc,2);
 
 %% Measurement noise
 % GNSS Position  measurement
-p_std = [..., ..., ...]'; % Measurement noise
+p_std = [1, 1, 1]'; % Measurement noise
 RGNSS = diag(p_std.^2);
 
 % accelerometer
-qA = ...^2; % accelerometer measurement noise covariance
-qAb = ...^2; % accelerometer bias driving noise covariance
-pAcc = ...; % accelerometer bias reciprocal time constant
+qA = 1^2; % accelerometer measurement noise covariance
+qAb = 1^2; % accelerometer bias driving noise covariance
+pAcc = 1; % accelerometer bias reciprocal time constant
 
-qG = ...^2; % gyro measurement noise covariance
-qGb = ...^2;  % gyro bias driving noise covariance
-pGyro = ...; % gyrp bias reciprocal time constant
+qG = 1^2; % gyro measurement noise covariance
+qGb = 1^2;  % gyro bias driving noise covariance
+pGyro = 1; % gyrp bias time constant
 
 
 %% Estimator
@@ -29,24 +29,26 @@ Pest = zeros(15, 15, steps);
 xpred = zeros(16, steps);
 Ppred = zeros(15, 15, steps);
 
+deltaX = zeros(15, steps);
+
 %% initialize
 xpred(1:3, 1) = [0, 0, -5]'; % starting 5 meters above ground
 xpred(4:6, 1) = [20, 0, 0]'; % starting at 20 m/s due north
 xpred(7, 1) = 1; % no initial rotation: nose to north, right to East and belly down.
 
-Ppred(1:3, 1:3, 1) = ...; 
-Ppred(4:6, 4:6, 1) = ...;
-Ppred(7:9, 7:9, 1) = ...; % error rotation vector (not quat)
-Ppred(10:12, 10:12, 1) = ...;
-Ppred(13:15, 13:15, 1) = ...;
+Ppred(1:3, 1:3, 1) = eye(3); 
+Ppred(4:6, 4:6, 1) = eye(3);
+Ppred(7:9, 7:9, 1) = eye(3); % error rotation vector (not quat)
+Ppred(10:12, 10:12, 1) = eye(3);
+Ppred(13:15, 13:15, 1) = eye(3);
 
 %% run
 N = 90000;
 GNSSk = 1;
 for k = 1:N
     if  timeIMU(k) >= timeGNSS(GNSSk)
-        NIS(GNSSk) = ...;
-        [xest(:, k), Pest(:, :, k)] = ...;
+        NIS(GNSSk) = eskf.NISGNSS(xpred(:,k), Ppred(:,:,k), zGNSS(:,GNSSk), RGNSS);
+        [xest(:, k), Pest(:, :, k)] = eskf.predict(xpred(:,k), Ppred(:,:,k), zAcc(:,k), zGyro(:,k), dt);
         GNSSk = GNSSk  + 1;
         
         % sanity check, remove for some minor speed
@@ -55,16 +57,16 @@ for k = 1:N
         end
         
     else % no updates so estimate = prediction
-        xest(:, k) = ... ;
-        Pest(:, :, k) = ... ;
+        xest(:, k) = xpred(:,k);
+        Pest(:, :, k) = Ppred(:,:,k);
     end
     
-    deltaX(:, k) = ...;
+    deltaX(:, k) = eskf.deltaX(xest(:,k), xtrue(:,k));
     [NEES(:, k), NEESpos(:, k), NEESvel(:, k), NEESatt(:, k), NEESaccbias(:, k), NEESgyrobias(:, k)] = ...
-        ...;
+        eskf.NEES(xest(:,k), Pest(:,:,k), xtrue(:,k));
     
     if k < N
-        [xpred(:, k+1),  Ppred(:, :, k+1)] = ...;
+        [xpred(:, k+1),  Ppred(:, :, k+1)] = eskf.updateGNSS(xest(:,k), Pest(:,:,k), zGNSS(:,GNSSk), RGNSS);
         % sanity check, remove for speed
         if any(any(~isfinite(Ppred(:, :, k + 1))))
            error('not finite Ppred at time %d', k + 1)
