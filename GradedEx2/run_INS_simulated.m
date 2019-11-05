@@ -4,16 +4,16 @@ steps = size(zAcc,2);
 
 %% Measurement noise
 % GNSS Position  measurement
-p_std = [100, 100, 100]'; % Measurement noise
+p_std = [0.1, 0.5, 1]'; % Measurement noise
 RGNSS = diag(p_std.^2);
 
 % accelerometer
-qA = 0.05^2; % accelerometer measurement noise covariance
-qAb = 0.001^2; % accelerometer bias driving noise covariance
+qA = 0.38^2; % accelerometer measurement noise covariance
+qAb = 1^2; % accelerometer bias driving noise covariance
 pAcc = 10000; % accelerometer bias reciprocal time constant
 
-qG = 0.05^2; % gyro measurement noise covariance
-qGb = 0.001^2;  % gyro bias driving noise covariance
+qG = 1^2; % gyro measurement noise covariance
+qGb = 1^2;  % gyro bias driving noise covariance
 pGyro = 10000; % gyrp bias time constant
 
 
@@ -62,8 +62,8 @@ for k = 1:N
     end
     
     deltaX(:, k) = eskf.deltaX(xest(:,k), xtrue(:,k));
-    %[NEES(:, k), NEESpos(:, k), NEESvel(:, k), NEESatt(:, k), NEESaccbias(:, k), NEESgyrobias(:, k)] = ...
-        %eskf.NEES(xest(:,k), Pest(:,:,k), xtrue(:,k));
+    [NEES(:, k), NEESpos(:, k), NEESvel(:, k), NEESatt(:, k), NEESaccbias(:, k), NEESgyrobias(:, k)] = ...
+        eskf.NEES(xest(:,k), Pest(:,:,k), xtrue(:,k));
     
     if k < N
         [xpred(:, k+1),  Ppred(:, :, k+1)] = eskf.predict(xest(:,k), Pest(:,:,k), zAcc(:,k), zGyro(:,k), dt);
@@ -79,7 +79,7 @@ figure(1);
 clf;
 plot3(xest(2, 1:N), xest(1, 1:N), -xest(3, 1:N));
 hold on;
-plot3(zGNSS(2, 1:GNSSk), zGNSS(1, 1:GNSSk), -zGNSS(3, 1:GNSSk))
+plot3(zGNSS(2, 1:GNSSk-1), zGNSS(1, 1:GNSSk-1), -zGNSS(3, 1:GNSSk-1))
 grid on; axis equal
 xlabel('East [m]')
 ylabel('North [m]')
@@ -105,7 +105,7 @@ legend('North', 'East', 'Down')
 subplot(5,1,3);
 plot((0:(N-1))*dt, eul(:, 1:N)*180/pi)
 hold on
-plot((0:(N-1))*dt, euler_out(:, 1:N)*180/pi)
+%plot((0:(N-1))*dt, euler_out(:, 1:N)*180/pi)
 grid on;
 ylabel('euler angles [deg]')
 legend('\phi', '\theta', '\psi')
@@ -121,7 +121,7 @@ grid on;
 ylabel('Gyro bias [deg/h]')
 legend('x', 'y', 'z')
 
-suptitle('States estimates');
+%suptitle('States estimates');
 
 % state error plots
 figure(3); clf; hold on;
@@ -166,7 +166,7 @@ legend(sprintf('x (%.3g)', sqrt(mean(((deltaX(13, 1:N))*180/pi).^2))),...
     sprintf('y (%.3g)', sqrt(mean(((deltaX(14, 1:N))*180/pi).^2))),...
     sprintf('z (%.3g)', sqrt(mean(((deltaX(15, 1:N))*180/pi).^2))))
 
-suptitle('States estimate errors');
+%suptitle('States estimate errors');
 
 % error distance plot
 figure(4); clf; hold on;
@@ -176,7 +176,7 @@ plot((0:(N-1))*dt, sqrt(sum(deltaX(1:3, 1:N).^2,1)))
 ylabel('Position error [m]')
 grid on;
 legend(sprintf('estimation error (%.3g)',sqrt(mean(sum(deltaX(1:3, 1:N).^2,1))) ),...
-    sprintf('measurement error (%.3g)', sqrt(mean(sum((xtrue(1:3, 100:100:N) - zGNSS(:, 1:GNSSk)).^2,1)))));
+    sprintf('measurement error (%.3g)', sqrt(mean(sum((xtrue(1:3, 100:100:N) - zGNSS(:, 1:GNSSk-1)).^2,1)))));
 
 subplot(2,1,2);
 plot((0:(N-1))*dt, sqrt(sum(deltaX(4:6, 1:N).^2, 1)))
