@@ -4,17 +4,17 @@ steps = size(zAcc,2);
 
 %% Measurement noise
 % GNSS Position  measurement
-p_std = [1000, 1000, 1000]'; % Measurement noise
+p_std = [100, 100, 100]'; % Measurement noise
 RGNSS = diag(p_std.^2);
 
 % accelerometer
-qA = 0.5^2; % accelerometer measurement noise covariance
-qAb = 0.01^2; % accelerometer bias driving noise covariance
-pAcc = 1; % accelerometer bias reciprocal time constant
+qA = 0.05^2; % accelerometer measurement noise covariance
+qAb = 0.001^2; % accelerometer bias driving noise covariance
+pAcc = 10000; % accelerometer bias reciprocal time constant
 
-qG = 0.5^2; % gyro measurement noise covariance
-qGb = 0.01^2;  % gyro bias driving noise covariance
-pGyro = 1; % gyrp bias time constant
+qG = 0.05^2; % gyro measurement noise covariance
+qGb = 0.001^2;  % gyro bias driving noise covariance
+pGyro = 10000; % gyrp bias time constant
 
 
 %% Estimator
@@ -43,7 +43,7 @@ Ppred(10:12, 10:12, 1) = eye(3);
 Ppred(13:15, 13:15, 1) = eye(3);
 
 %% run
-N = 10000;
+N = 90000;
 GNSSk = 1;
 for k = 1:N
     if  timeIMU(k) >= timeGNSS(GNSSk)
@@ -105,7 +105,7 @@ legend('North', 'East', 'Down')
 subplot(5,1,3);
 plot((0:(N-1))*dt, eul(:, 1:N)*180/pi)
 hold on
-%plot((0:(N-1))*dt, euler_out(:, 1:N)*180/pi)
+plot((0:(N-1))*dt, euler_out(:, 1:N)*180/pi)
 grid on;
 ylabel('euler angles [deg]')
 legend('\phi', '\theta', '\psi')
@@ -172,7 +172,7 @@ suptitle('States estimate errors');
 figure(4); clf; hold on;
 subplot(2,1,1); hold on;
 plot((0:(N-1))*dt, sqrt(sum(deltaX(1:3, 1:N).^2,1)))
-plot((0:100:(N-1))*dt, sqrt(sum((xtrue(1:3, 100:100:N) - zGNSS(:, 1:GNSSk)).^2,1)))
+%plot((0:100:(N-1))*dt, sqrt(sum((xtrue(1:3, 100:100:N) - zGNSS(:, 1:GNSSk)).^2,1)))
 ylabel('Position error [m]')
 grid on;
 legend(sprintf('estimation error (%.3g)',sqrt(mean(sum(deltaX(1:3, 1:N).^2,1))) ),...

@@ -68,11 +68,11 @@ classdef ESKF
             R = quat2rotmat(quat);
             
             % predictions
-            posPred = pos + Ts * vel + Ts^2/2 * (R * (acc) + obj.g);%  obj.g skal vere med?
-            velPred = vel + Ts * (R * (acc) + obj.g);%
+            posPred = pos + Ts * vel + Ts^2/2 * (R * acc + obj.g);%  obj.g skal vere med?
+            velPred = vel + Ts * (R * acc + obj.g);%
             
-            dq = Ts * omega; %1/2 * quatProd(quat, omega) * Ts;
-            quatPred = quatProd(quat, euler2quat(dq));%[cos(norm(dq)/2); dq/norm(dq)*sin(norm(dq)/2)]);
+            dq = Ts * omega;
+            quatPred = quatProd(quat, euler2quat(dq));
             
             accBiasPred = -(1/obj.pAcc)*eye(3)*accBias;%  is eye needed?
             gyroBiasPred = -(1/obj.pGyro)*eye(3)*gyroBias;%
@@ -109,7 +109,7 @@ classdef ESKF
             A(1:3, 4:6) = I3;%...; % vel to pos
             A(4:6, 7:9) = -R*crossProdMat(acc); %...; % attitude to vel
             A(4:6, 10:12) = -R; %...; % acc bias to vel
-            A(7:9, 7:9) = crossProdMat(omega); %...; % attitude to attitude
+            A(7:9, 7:9) = -crossProdMat(omega); %...; % attitude to attitude
             A(7:9, 13:15) = -I3; %...; % gyro bias to attitude
             A(10:12, 10:12) = -(1/obj.pAcc)*I3; %...; % acc bias to acc bias
             A(13:15, 13:15) = -(1/obj.pGyro)*I3; %...; % gyro bias to gyro bias
@@ -159,8 +159,8 @@ classdef ESKF
             VanLoanMat = expm(V); % can potentially be slow
              
             % exctract relevat matrices.
-            Ad = VanLoanMat(16:30, 16:30);
-            GQGd = VanLoanMat(1:15, 16:30);    
+            Ad = (VanLoanMat(16:30, 16:30))';
+            GQGd = Ad*VanLoanMat(1:15, 16:30);    
         end
         
         function Ppred = predictCovariance(obj, xnom, P, acc, omega, Ts)
@@ -178,12 +178,7 @@ classdef ESKF
             [Ad, GQGd] = obj.discreteErrMats(xnom, acc, omega, Ts);
             
             % KF covariance predict
-            Ppred = Ad*P*Ad' + GQGd;%
-            
-            Pmax = max(max(max(Ppred)));
-            if Pmax > 100
-                tau = 0;
-            end
+            Ppred = Ad*P*Ad' + GQGd;
             
         end
         
@@ -231,7 +226,7 @@ classdef ESKF
             
             % make sure quaterion is normalized
             xinjected(7:10) = xinjected(7:10)/norm(xinjected(7:10));
-                
+    
             % compensate for injection in the covariance
             S = crossProdMat(deltaX(7:9));
             Ginject = blkdiag(eye(6), (eye(3) - S), eye(6));
