@@ -17,6 +17,7 @@ qGb = 0.0000001; % 0.0000001; % gyro bias driving noise covariance
 pGyro = 10^(1); %1 % gyro bias time constant
 
 
+
 %% Estimator
 eskf = ESKF(qA, qG, qAb, qGb, pAcc, pGyro);
 eskf.Sa = S_a; % set the accelerometer correction matrix
@@ -133,7 +134,7 @@ grid on;
 ylabel('Gyro bias [deg/h]')
 legend('x', 'y', 'z')
 
-suptitle('States estimates');
+%suptitle('States estimates');
 
 % state error plots
 figure(3); clf; hold on;
@@ -178,7 +179,7 @@ legend(sprintf('x (%.3g)', sqrt(mean(((deltaX(13, 1:N))*180/pi).^2))),...
     sprintf('y (%.3g)', sqrt(mean(((deltaX(14, 1:N))*180/pi).^2))),...
     sprintf('z (%.3g)', sqrt(mean(((deltaX(15, 1:N))*180/pi).^2))))
 
-suptitle('States estimate errors');
+%suptitle('States estimate errors');
 
 % error distance plot
 figure(4); clf; hold on;
