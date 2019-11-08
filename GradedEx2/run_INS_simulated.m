@@ -4,17 +4,17 @@ steps = size(zAcc,2);
 
 %% Measurement noise
 % GNSS Position  measurement
-p_std = [100, 100, 100]'; % Measurement noise
+p_std = [0.8, 0.7, 0.5]';%[0.8, 0.7, 0.5]'; Measurement noise
 RGNSS = diag(p_std.^2);
-
+ 
 % accelerometer
-qA = 0.05^2; % accelerometer measurement noise covariance
-qAb = 0.001^2; % accelerometer bias driving noise covariance
-pAcc = 10000; % accelerometer bias reciprocal time constant
-
-qG = 0.05^2; % gyro measurement noise covariance
-qGb = 0.001^2;  % gyro bias driving noise covariance
-pGyro = 10000; % gyrp bias time constant
+qA = 0.0001;% 0.0001; % accelerometer measurement noise covariance
+qAb = 0.0001;% 0.0001; % accelerometer bias driving noise covariance
+pAcc = 10^(12); % 10^12% accelerometer bias reciprocal time constant
+ 
+qG = 0.1;% 0.1; % gyro measurement noise covariance
+qGb = 0.0000001; % 0.0000001; % gyro bias driving noise covariance
+pGyro = 10^(1); %1 % gyro bias time constant
 
 
 %% Estimator
@@ -45,6 +45,8 @@ Ppred(13:15, 13:15, 1) = eye(3);
 %% run
 N = 90000;
 GNSSk = 1;
+Time = 0;
+a = '#';
 for k = 1:N
     if  timeIMU(k) >= timeGNSS(GNSSk)
         NIS(GNSSk) = eskf.NISGNSS(xpred(:,k), Ppred(:,:,k), zGNSS(:,GNSSk), RGNSS);
@@ -62,24 +64,34 @@ for k = 1:N
     end
     
     deltaX(:, k) = eskf.deltaX(xest(:,k), xtrue(:,k));
-    %[NEES(:, k), NEESpos(:, k), NEESvel(:, k), NEESatt(:, k), NEESaccbias(:, k), NEESgyrobias(:, k)] = ...
-        %eskf.NEES(xest(:,k), Pest(:,:,k), xtrue(:,k));
+    [NEES(:, k), NEESpos(:, k), NEESvel(:, k), NEESatt(:, k), NEESaccbias(:, k), NEESgyrobias(:, k)] = ...
+        eskf.NEES(xest(:,k), Pest(:,:,k), xtrue(:,k));
     
     if k < N
-        [xpred(:, k+1),  Ppred(:, :, k+1)] = eskf.predict(xest(:,k), Pest(:,:,k), zAcc(:,k), zGyro(:,k), dt);
+        [xpred(:, k+1),  Ppred(:, :, k+1)] = eskf.predict(xest(:,k), Pest(:,:,k), zAcc(:,k+1), zGyro(:,k+1), dt);
         % sanity check, remove for speed
         if any(any(~isfinite(Ppred(:, :, k + 1))))
            error('not finite Ppred at time %d', k + 1)
         end
     end
+    
+    Time = Time + 1;
+    
+    if mod(Time, 900) == 0
+        clc;
+        fprintf('%s', a);
+        fprintf("  %.0f%%\n", Time/900);
+        a = strcat(a, "#");
+    end
 end
+posRMS = sqrt(trace((xest-xtrue)*(xest-xtrue)')/N);
 
 %% plots
 figure(1);
 clf;
 plot3(xest(2, 1:N), xest(1, 1:N), -xest(3, 1:N));
 hold on;
-plot3(zGNSS(2, 1:GNSSk), zGNSS(1, 1:GNSSk), -zGNSS(3, 1:GNSSk))
+plot3(zGNSS(2, 1:GNSSk-1), zGNSS(1, 1:GNSSk-1), -zGNSS(3, 1:GNSSk-1))
 grid on; axis equal
 xlabel('East [m]')
 ylabel('North [m]')
@@ -105,7 +117,7 @@ legend('North', 'East', 'Down')
 subplot(5,1,3);
 plot((0:(N-1))*dt, eul(:, 1:N)*180/pi)
 hold on
-plot((0:(N-1))*dt, euler_out(:, 1:N)*180/pi)
+%plot((0:(N-1))*dt, euler_out(:, 1:N)*180/pi)
 grid on;
 ylabel('euler angles [deg]')
 legend('\phi', '\theta', '\psi')
@@ -172,11 +184,11 @@ suptitle('States estimate errors');
 figure(4); clf; hold on;
 subplot(2,1,1); hold on;
 plot((0:(N-1))*dt, sqrt(sum(deltaX(1:3, 1:N).^2,1)))
-%plot((0:100:(N-1))*dt, sqrt(sum((xtrue(1:3, 100:100:N) - zGNSS(:, 1:GNSSk)).^2,1)))
+plot((0:100:(N-1))*dt, sqrt(sum((xtrue(1:3, 100:100:N) - zGNSS(:, 1:GNSSk-1)).^2,1)))
 ylabel('Position error [m]')
 grid on;
 legend(sprintf('estimation error (%.3g)',sqrt(mean(sum(deltaX(1:3, 1:N).^2,1))) ),...
-    sprintf('measurement error (%.3g)', sqrt(mean(sum((xtrue(1:3, 100:100:N) - zGNSS(:, 1:GNSSk)).^2,1)))));
+    sprintf('measurement error (%.3g)', sqrt(mean(sum((xtrue(1:3, 100:100:N) - zGNSS(:, 1:GNSSk-1)).^2,1)))));
 
 subplot(2,1,2);
 plot((0:(N-1))*dt, sqrt(sum(deltaX(4:6, 1:N).^2, 1)))

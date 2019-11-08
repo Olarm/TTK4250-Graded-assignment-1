@@ -4,16 +4,17 @@ dt = mean(IMUTs);
 K = size(zAcc,2);
 %% Measurement noise
 % GNSS Position  measurement
-...
+p_std = [100, 100, 100]'; % Measurement noise
+RGNSS = diag(p_std.^2);
 
 % accelerometer
-qA = ...^2; % accelerometer measurement noise covariance
-qAb = ...^2; % accelerometer bias driving noise covariance
-pAcc = ...; % accelerometer bias reciprocal time constant
+qA = 10;%1^2; % accelerometer measurement noise covariance
+qAb = 1000;%(0.1*10^(-9))^2; % accelerometer bias driving noise covariance
+pAcc = 10^12; % accelerometer bias reciprocal time constant
 
-qG = ...^2; % gyro measurement noise covariance
-qGb = ...^2;  % gyro bias driving noise covariance
-pGyro = ...; % gyrp bias reciprocal time constant
+qG = 2;%0.01^2; % gyro measurement noise covariance
+qGb = 1;%(0.1*10^(-9))^2;  % gyro bias driving noise covariance
+pGyro = 10^12; % gyrp bias time constant
 
 
 %% Estimator
@@ -46,24 +47,24 @@ for k = 1:N
     t = timeIMU(k);
     
     if mod(k, 1000) == 0
-        fprintf('time %.3f at step %d\n', t - IMUtime(1), k);
+        fprintf('time %.3f at step %d\n', t - timeIMU(1), k);
     end
     
     if timeGNSS(GNSSk) < t
-        NIS(GNSSk) = ...;
-        [xest(:, k), Pest(:, :, k)] = ...;
+        NIS(GNSSk) = eskf.NISGNSS(xpred(:,k), Ppred(:,:,k), zGNSS(:,GNSSk), RGNSS);
+        [xest(:, k), Pest(:, :, k)] = eskf.updateGNSS(xpred(:,k), Ppred(:,:,k), zGNSS(:,GNSSk), RGNSS);
         GNSSk = GNSSk + 1;
     
         if any(any(~isfinite(Pest(:, :, k))))
             error('not finite Pest at time %d',k)
         end
     else % no updates so estimate = prediction
-        xest(:, k) = ...;
-        Pest(:, :, k) = ...;
+        xest(:, k) = xpred(:,k);
+        Pest(:, :, k) = Ppred(:,:,k);
     end
 
     if k < K
-        [xpred(:, k + 1),  Ppred(:, :, k + 1)] = ...;
+        [xpred(:, k + 1),  Ppred(:, :, k + 1)] = eskf.predict(xest(:,k), Pest(:,:,k), zAcc(:,k), zGyro(:,k), dt);
         
         if any(any(~isfinite(Ppred(:, :, k + 1))))
             error('not finite Ppred at time %d', k + 1)
