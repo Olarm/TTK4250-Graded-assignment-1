@@ -4,17 +4,17 @@ steps = size(zAcc,2);
 
 %% Measurement noise
 % GNSS Position  measurement
-p_std = [0.1, 0.5, 1]'; % Measurement noise
+p_std = [0.55, 0.75, 0.4]';   %[0.4, 0.6, 0.5]';   %[0.4, 0.5, 0.7]'; % Measurement noise
 RGNSS = diag(p_std.^2);
 
-% accelerometer
-qA = 0.38^2; % accelerometer measurement noise covariance
-qAb = 1^2; % accelerometer bias driving noise covariance
-pAcc = 10000; % accelerometer bias reciprocal time constant
+% accelerometer % tot+att low
+qA = 0.000005;   % 0.00001;  % 0.0001; % accelerometer measurement noise covariance
+qAb = 0.002;    % 0.001;    % 0.0001; % accelerometer bias driving noise covariance
+pAcc = 1e8;     % 1e8;      % 1e8; % accelerometer bias reciprocal time constant
 
-qG = 1^2; % gyro measurement noise covariance
-qGb = 1^2;  % gyro bias driving noise covariance
-pGyro = 10000; % gyrp bias time constant
+qG = 0.06;   % 0.00001;  % 0.1; % gyro measurement noise covariance
+qGb = 0.0000001;   % 0.0001;   % 0.001;  % gyro bias driving noise covariance
+pGyro = 1e1;    % 1e0;      % 1e6; % gyrp bias time constant
 
 
 %% Estimator
@@ -66,7 +66,7 @@ for k = 1:N
         eskf.NEES(xest(:,k), Pest(:,:,k), xtrue(:,k));
     
     if k < N
-        [xpred(:, k+1),  Ppred(:, :, k+1)] = eskf.predict(xest(:,k), Pest(:,:,k), zAcc(:,k), zGyro(:,k), dt);
+        [xpred(:, k+1),  Ppred(:, :, k+1)] = eskf.predict(xest(:,k), Pest(:,:,k), zAcc(:,k+1), zGyro(:,k+1), dt);
         % sanity check, remove for speed
         if any(any(~isfinite(Ppred(:, :, k + 1))))
            error('not finite Ppred at time %d', k + 1)
@@ -127,7 +127,7 @@ legend('x', 'y', 'z')
 figure(3); clf; hold on;
 
 subplot(5,1,1);
-plot((0:(N-1))*dt, deltaX(1:3,:))
+plot((0:(N-1))*dt, deltaX(1:3,1:N))
 grid on;
 ylabel('NED position error [m]')
 legend(sprintf('North (%.3g)', sqrt(mean(deltaX(1, 1:N).^2))),...

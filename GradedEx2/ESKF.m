@@ -362,5 +362,3 @@ classdef ESKF
         end
     end
 end
-
-
