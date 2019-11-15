@@ -1,10 +1,10 @@
 load simulatedSLAM;
 K = numel(z);
 %%
-Q = 0.5;
+Q = diag([1.5, 1.5, 1.5]);
 R = diag([2, 1]);
 doAsso = false;
-JCBBalphas = [0.1, 2]; % first is for joint compatibility, second is individual 
+JCBBalphas = [0, 0]; % first is for joint compatibility, second is individual 
 slam = EKFSLAM(Q, R, doAsso, JCBBalphas);
 
 % allocate
