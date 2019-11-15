@@ -1,10 +1,10 @@
 load simulatedSLAM;
 K = numel(z);
 %%
-Q = ...
-R = ...
+Q = 0.5;
+R = diag([2, 1]);
 doAsso = true;
-JCBBalphas = [..., ...] % first is for joint compatibility, second is individual 
+JCBBalphas = [0.1, 2] % first is for joint compatibility, second is individual 
 slam = EKFSLAM(Q, R, doAsso, JCBBalphas);
 
 % allocate
@@ -19,8 +19,8 @@ xpred{1} = poseGT(:,1); % we start at the correct position for reference
 Ppred{1} = zeros(3, 3); % we also say that we are 100% sure about that
 
 
-figure(10); clf;
-axAsso = gca;
+%%figure(10); clf;
+%%axAsso = gca;
 N = K;
 doAssoPlot = true; % set to true to se the associations that are done
 for k = 1:N
@@ -36,15 +36,15 @@ for k = 1:N
     end
     
     if doAssoPlot && k > 1 %&& any(a{k} == 0) % uncoment last part to only see new creations
-        cla(axAsso); hold on;grid  on;
+        %%cla(axAsso); hold on;grid  on;
         zpred = reshape(slam.h(xpred{k}), 2, []);
-        scatter(axAsso, z{k}(1, :), z{k}(2, :));
-        scatter(axAsso, zpred(1, :), zpred(2, :));
-        plot(axAsso, [z{k}(1, a{k}>0); zpred(1, a{k}(a{k}>0))], [z{k}(2, a{k}>0); zpred(2, a{k}(a{k}>0))], 'r', 'linewidth', 2)
+        %%scatter(axAsso, z{k}(1, :), z{k}(2, :));
+        %%scatter(axAsso, zpred(1, :), zpred(2, :));
+        %%plot(axAsso, [z{k}(1, a{k}>0); zpred(1, a{k}(a{k}>0))], [z{k}(2, a{k}>0); zpred(2, a{k}(a{k}>0))], 'r', 'linewidth', 2)
         
-        legend(axAsso, 'z', 'zbar', 'a')
-        title(axAsso, sprintf('k = %d: %s', k, sprintf('%d, ',a{k})));
-        pause();
+        %%legend(axAsso, 'z', 'zbar', 'a')
+        %%title(axAsso, sprintf('k = %d: %s', k, sprintf('%d, ',a{k})));
+        %%pause();
     end
 end
 
@@ -55,14 +55,14 @@ clf;
 %subplot(1,2,1);
 hold on;
 
-scatter(landmarks(1,:), landmarks(2,:), 'r^')
-scatter(xhat{k}(4:2:end), xhat{k}(5:2:end), 'b.')
+%%scatter(landmarks(1,:), landmarks(2,:), 'r^')
+%%scatter(xhat{k}(4:2:end), xhat{k}(5:2:end), 'b.')
 
 lh1 = plot(poseGT(1, 1:k), poseGT(2,1:k), 'r', 'DisplayName', 'gt');
 lh2 = plot(cellfun(@(x) x(1), xhat), cellfun(@(x) x(2), xhat), 'b', 'DisplayName', 'est');
 
 el = ellipse(xhat{k}(1:2),Phat{k}(1:2,1:2),5,200);
-plot(el(1,:),el(2,:),'b');
+%%plot(el(1,:),el(2,:),'b');
 
 for ii=1:((size(Phat{k}, 1)-3)/2)
    rI = squeeze(Phat{k}(3+[1,2]+(ii-1)*2,3+[1,2]+(ii-1)*2));
