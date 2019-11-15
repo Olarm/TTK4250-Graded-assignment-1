@@ -74,17 +74,17 @@ classdef EKFSLAM
             G = vertcat(Fu, zeros(length(m), 3));
             
             % in place for performance
-            P(1:3, 1:3) = Fx*P(1:3, 1:3)*Fx' + G(1:3, 1:3)*obj.Q*(G(1:3, 1:3))'; %
-            P(1:3, 4:end) = P(1:3, 4:end) + G(1:3, :)*obj.Q*(G(4:end, :))'; % 
-            P(4:end, 1:3) = P(4:end, 1:3) + G(4:end, :)*obj.Q*G(1:3, :)';% 
+            P(1:3, 1:3) = Fx*P(1:3, 1:3)*Fx' + Fu*obj.Q*Fu'; %
+            P(1:3, 4:end) = Fx*P(1:3, 4:end); % 
+            P(4:end, 1:3) = P(1:3, 4:end)';% 
             
             % concatenate pose and landmarks again
             etapred = [xpred; m];
             
             % check that the covariance makes sense
-            if any(eig(P) <= 0) % costly, remove when tested
-                warning('EKFpredict got cov not PSD')
-            end
+%             if any(eig(P) <= 0) % costly, remove when tested
+%                 warning('EKFpredict got cov not PSD')
+%             end
         end
         
         function zpred = h(obj, eta)
@@ -180,9 +180,9 @@ classdef EKFSLAM
             Padded(1:n, (n+1):end) = P(:, 1:3)*Gx';
 
             % sanity check, remove for speed
-            if any(eig(Padded) <= 0) % costly, remove when tested
-                warning('EKFupdate got cov not PSD after adding a landmark');
-            end
+%             if any(eig(Padded) <= 0) % costly, remove when tested
+%                 warning('EKFupdate got cov not PSD after adding a landmark');
+%             end
         end
         
         function [z, zpred, H, S, a] = associate(obj, z, zpred, H, S)
@@ -229,9 +229,9 @@ classdef EKFSLAM
                 Pupd = (I_P - W*H)*P;
                 
                 % sanity check, remove for speed
-                if any(eig(Pupd) <= 0) % costly, remove when tested
-                    warning('EKFupdate got cov not PSD');
-                end
+%                 if any(eig(Pupd) <= 0) % costly, remove when tested
+%                     warning('EKFupdate got cov not PSD');
+%                 end
             else % all measurements are new landmarks
                 a = zeros(size(z, 2), 1);
                 z = z(:);

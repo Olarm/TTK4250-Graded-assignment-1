@@ -3,8 +3,8 @@ K = numel(z);
 %%
 Q = 0.5;
 R = diag([2, 1]);
-doAsso = true;
-JCBBalphas = [0.1, 2] % first is for joint compatibility, second is individual 
+doAsso = false;
+JCBBalphas = [0.1, 2]; % first is for joint compatibility, second is individual 
 slam = EKFSLAM(Q, R, doAsso, JCBBalphas);
 
 % allocate
@@ -24,6 +24,7 @@ Ppred{1} = zeros(3, 3); % we also say that we are 100% sure about that
 N = K;
 doAssoPlot = true; % set to true to se the associations that are done
 for k = 1:N
+    disp([k, N]);
     [xhat{k}, Phat{k}, NIS(k), a{k}] =  slam.update(xpred{k}, Ppred{k}, z{k});
     if k < K
         [xpred{k + 1}, Ppred{k + 1}] = slam.predict(xhat{k}, Phat{k}, odometry(:, k));
