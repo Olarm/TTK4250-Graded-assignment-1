@@ -122,7 +122,7 @@ classdef IMM
            for s = 1:obj.M
                 filter = obj.modeFilters{s};
                 [xupd(:, s), Pupd(:,:,s)] = filter.update(z, x(:,s), P(:,:,s));
-                logLambdas = filter.loglikelihood(z, x(:,s), P(:,:,s));
+                logLambdas(s) = filter.loglikelihood(z, x(:,s), P(:,:,s));
            end
        end
        
