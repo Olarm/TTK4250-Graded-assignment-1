@@ -163,9 +163,9 @@ classdef EKFSLAM
                 vecZ = [-sin(zj(2) + eta(3)); cos(zj(2) + eta(3))];
                 rot = rotmat2d(zj(2) + eta(3));
                 
-                %[x, y] = pol2cart(zj(2), zj(1));
+                [x, y] = pol2cart(zj(2), zj(1));
                 %lmnew(inds) = rotmat2d(-eta(3)) * ([x, y]' - obj.sensOffset); % mean
-                lmnew(inds) = zj(1)*rot(:, 1) + eta(1:2) + rotmat2d(eta(3))*obj.sensOffset;
+                lmnew(inds) = zj(1)*rot(:, 1) + eta(, :)
                 Gx(inds, :) = [eye(2) zj(1)*vecZ + Rot90*obj.sensOffset]; % jac h^1 wrt. x
                 Gz =  rot*diag([1, zj(1)]); % jac h^-1 wrt. z
                 Rall(inds, inds) = Gz*obj.R*Gz'; % the linearized measurement noise
