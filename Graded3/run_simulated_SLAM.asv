@@ -2,7 +2,7 @@ load simulatedSLAM;
 K = numel(z);
 %%
 Q = diag([0.01, 0.01, 5/180*pi]);
-R = diag([0.1, 0.5/180*pi]);
+R = diag([1, 5/180*pi]);
 doAsso = true;
 JCBBalphas = [0.001, 0.000001]; % first is for joint compatibility, second is individual 
 slam = EKFSLAM(Q, R, doAsso, JCBBalphas);
@@ -21,7 +21,7 @@ Ppred{1} = zeros(3, 3); % we also say that we are 100% sure about that
 
 figure(10); clf;
 axAsso = gca;
-K = 100;
+K = 1;
 N = K;
 doAssoPlot = true; % set to true to se the associations that are done
 for k = 1:N
