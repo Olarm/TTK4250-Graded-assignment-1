@@ -4,17 +4,17 @@ dt = mean(IMUTs);
 K = size(zAcc,2);
 %% Measurement noise
 % GNSS Position  measurement
-p_std = [100, 100, 100]'; % Measurement noise
+p_std = [0.5, 0.3, 0.2]'; % Measurement noise
 RGNSS = diag(p_std.^2);
 
 % accelerometer
-qA = 10;%1^2; % accelerometer measurement noise covariance
-qAb = 1000;%(0.1*10^(-9))^2; % accelerometer bias driving noise covariance
+qA = 0.0001;%1^2; % accelerometer measurement noise covariance
+qAb = 0.0001;%(0.1*10^(-9))^2; % accelerometer bias driving noise covariance
 pAcc = 10^12; % accelerometer bias reciprocal time constant
 
-qG = 2;%0.01^2; % gyro measurement noise covariance
-qGb = 1;%(0.1*10^(-9))^2;  % gyro bias driving noise covariance
-pGyro = 10^12; % gyrp bias time constant
+qG = 0.0001;%0.01^2; % gyro measurement noise covariance
+qGb = 1e-6;%(0.1*10^(-9))^2;  % gyro bias driving noise covariance
+pGyro = 10^1; % gyrp bias time constant
 
 
 %% Estimator
@@ -88,24 +88,24 @@ figure(2); clf; hold on;
 subplot(5,1,1);
 plot(timeIMU(1:N) - timeIMU(1), xest(1:3, 1:N))
 grid on;
-ylabel('NED position [m]')
+ylabel({'NED position'; '[m]'})
 subplot(5,1,2);
 plot(timeIMU(1:N) - timeIMU(1), xest(4:6, 1:N))
 grid on;
-ylabel('Velocitites [m/s]')
+ylabel({'Velocitites'; '[m/s]'})
 subplot(5,1,3);
 plot(timeIMU(1:N) - timeIMU(1), eul(:, 1:N))
 grid on;
-ylabel('euler angles [deg]')
+ylabel({'euler angles'; '[deg]'})
 legend('\phi', '\theta', '\psi')
 subplot(5, 1, 4)
 plot(timeIMU(1:N) - timeIMU(1), xest(11:13, 1:N))
 grid on;
-ylabel('Accl bias [m/s^2]')
+ylabel({'Accl bias'; '[m/s^2]'})
 subplot(5, 1, 5)
 plot(timeIMU(1:N) - timeIMU(1), xest(14:16, 1:N)*180/pi * 3600)
 grid on;
-ylabel('Gyro bias [rad/s]')
+ylabel({'Gyro bias'; '[rad/s]'})
 
 figure(3);
 alpha = 0.05;
