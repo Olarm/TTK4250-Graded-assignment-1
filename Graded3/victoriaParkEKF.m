@@ -17,13 +17,13 @@ car.a = 0.95; % laser distance in front of first axel
 car.b = 0.5; % laser distance to the left of center
 
 % the SLAM parameters
-sigmas = ...
+sigmas = [0.05, 0.05, 0.1/180*pi];
 CorrCoeff = [1, 0, 0; 0, 1, 0.9; 0, 0.9, 1];
 Q = diag(sigmas) * [1, 0, 0; 0, 1, 0.9; 0, 0.9, 1] * diag(sigmas); % (a bit at least) emprically found, feel free to change
 
-R = ...
+R = diag([0.5, 0.05/180*pi]);
 
-JCBBalphas = [..., ...]; % first is for joint compatibility, second is individual 
+JCBBalphas = [0.02, 0.5e-5]; % first is for joint compatibility, second is individual 
 sensorOffset = [car.a + car.L; car.b];
 slam = EKFSLAM(Q, R, true, JCBBalphas, sensorOffset);
 
@@ -32,23 +32,33 @@ xupd = zeros(3, mK);
 a = cell(1, mK);
 
 % initialize TWEAK THESE TO BETTER BE ABLE TO COMPARE TO GPS
-eta = [Lo_m(1); La_m(2); 30 * pi /180]; % set the start to be relatable to GPS. 
+eta = [Lo_m(1); La_m(1); 37 * pi /180]; % set the start to be relatable to GPS. 
 P = zeros(3,3); % we say that we start knowing where we are in our own local coordinates
 
 mk = 2; % first seems to be a bit off in timing
 t = timeOdo(1);
 tic
 N = 15000;
-
-
+N = 100;
 doPlot = true;
 figure(1); clf;  hold on; grid on; axis equal;
+axis([-100+Lo_m(1) 150+Lo_m(1) -150+La_m(1) 200+La_m(1)]);
 ax = gca;
 % cheeper to update plot data than to create new plot objects
 lhPose = plot(ax, eta(1), eta(2), 'k');
 shLmk = scatter(ax, nan, nan, 'rx');
 shZ = scatter(ax, nan, nan, 'bo');
 th = title(ax, 'start');
+
+GPSk = 2;
+
+LaserN = sum(timeLsr <= timeOdo(N));
+GPSN = sum(timeGps <= timeOdo(N));
+
+NIS = zeros(LaserN, 1);
+NEES = zeros(GPSN, 1);
+
+degFreedomNIS = zeros(LaserN, 1);
 
 for k = 1:N
     if mk < mK && timeLsr(mk) <= timeOdo(k+1)
@@ -61,7 +71,7 @@ for k = 1:N
             error('negative time increment...')
         end
         z = detectTreesI16(LASER(mk,:));
-        [eta, P, NIS(k), a{k}] = slam.update(eta, P, z);
+        [eta, P, NIS(mk), a{k}, degFreedomNIS(mk)] = slam.update(eta, P, z);
         xupd(:, mk) = eta(1:3); 
         mk = mk + 1;
         if doPlot
@@ -92,6 +102,12 @@ for k = 1:N
         disp(k)
         tic
     end
+    while timeGps(GPSk) < timeOdo(k) && mk <= LaserN
+        err = (eta(1:2) - [Lo_m(GPSk); La_m(GPSk)]);
+        
+        NEES(GPSk) = (err'/P(1:2, 1:2))*err;
+        GPSk = GPSk + 1;
+    end
 end
 
 %% 
@@ -101,6 +117,48 @@ scatter(Lo_m(timeGps < timeOdo(N)), La_m(timeGps < timeOdo(N)), '.')
 scatter(eta(4:2:end), eta(5:2:end), 'rx');
 
 % what can we do with consistency..? divide by the number of associated
-% measurements? 
-figure(3); clf;
-plot(NIS);
+% measurements?
+figure(3);
+subplot(2, 1, 1);
+plot(NIS./degFreedomNIS, 'k');
+hold on;
+alpha = 0.05;
+CI = zeros(LaserN, 3);
+% ACI = chi2inv([alpha/2; 1 - alpha/2], 1)/N; % NOT CORRECT NOW
+for n = 1:LaserN
+    CI(n, :) = chi2inv([alpha/2; 1 - alpha/2; 0.5], degFreedomNIS(n))/degFreedomNIS(n);
+end 
+
+insideCI = 0;
+for n = 1:LaserN
+    if (CI(n, 1) < NIS(n) * (NIS(n) <= CI(n, 2)))
+        insideCI = insideCI + 1;
+    end
+end
+insideCI = (insideCI/N)*100;
+% , [0:LaserN-1], (CI(:, 3)')
+plot([0:LaserN-1], (CI(:, 1)'), 'r--', [0:LaserN-1], (CI(:, 2)'), 'r--');
+
+title(sprintf('NIS over time, with %0.1f%% inside %0.1f%% CI', insideCI, (1-alpha)*100));
+grid on;
+ylabel('NIS/degrees of freedom');
+xlabel('Measurement step');
+
+
+
+subplot(2, 1, 2);
+plot(NEES, 'k');
+hold on;
+CI = chi2inv([alpha/2; 1 - alpha/2; 0.5], 2);
+
+insideCI = mean((CI(1) <= NEES).* (NEES <= CI(2)));
+
+insideCI = (insideCI/GPSN)*100;
+
+plot([0, GPSN - 1], (CI*ones(1,2))','r--');
+
+title(sprintf('NEES (%.3g%% inside %.3g%% confidence intervall)', 100*insideCI, 100*(1 - alpha)));
+grid on;
+ylabel('NEES');
+xlabel('Measurement GPS');
+

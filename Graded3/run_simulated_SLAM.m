@@ -1,10 +1,10 @@
 load simulatedSLAM;
 K = numel(z);
 %%
-Q = diag([0.01, 0.01, 5/180*pi]);
-R = diag([0.1, 0.5/180*pi]);
+Q = diag([0.05, 0.05, 0.5/180*pi]);
+R = diag([0.05, 0.5/180*pi]);
 doAsso = true;
-JCBBalphas = [0.001, 0.000001]; % first is for joint compatibility, second is individual 
+JCBBalphas = [0.5, 0.5e-5]; % first is for joint compatibility, second is individual 
 slam = EKFSLAM(Q, R, doAsso, JCBBalphas);
 
 % allocate
@@ -17,16 +17,17 @@ a = cell(1, K);
 % init
 xpred{1} = poseGT(:,1); % we start at the correct position for reference
 Ppred{1} = zeros(3, 3); % we also say that we are 100% sure about that
-
+NIS = zeros(1, 1000);
 
 figure(10); clf;
 axAsso = gca;
-K = 100;
 N = K;
 doAssoPlot = true; % set to true to se the associations that are done
+
+degFreedom = zeros(1000, 1);
 for k = 1:N
     disp(k);
-    [xhat{k}, Phat{k}, NIS(k), a{k}] =  slam.update(xpred{k}, Ppred{k}, z{k});
+    [xhat{k}, Phat{k}, NIS(k), a{k}, degFreedom(k)] =  slam.update(xpred{k}, Ppred{k}, z{k});
     if k < K
         [xpred{k + 1}, Ppred{k + 1}] = slam.predict(xhat{k}, Phat{k}, odometry(:, k));
     end
@@ -38,13 +39,13 @@ for k = 1:N
     end
     
     if doAssoPlot && k > 1 %&& any(a{k} == 0) % uncoment last part to only see new creations
-        %%cla(axAsso); hold on;grid  on;
+        cla(axAsso); hold on;grid  on;
         zpred = reshape(slam.h(xpred{k}), 2, []);
         scatter(axAsso, z{k}(1, :), z{k}(2, :));
         scatter(axAsso, zpred(1, :), zpred(2, :));
         plot(axAsso, [z{k}(1, a{k}>0); zpred(1, a{k}(a{k}>0))], [z{k}(2, a{k}>0); zpred(2, a{k}(a{k}>0))], 'r', 'linewidth', 2)
         
-        %%legend(axAsso, 'z', 'zbar', 'a')
+        legend(axAsso, 'z', 'zbar', 'a')
         title(axAsso, sprintf('k = %d: %s', k, sprintf('%d, ',a{k})));
         %pause();
     end
@@ -64,19 +65,19 @@ lh1 = plot(poseGT(1, 1:k), poseGT(2,1:k), 'r', 'DisplayName', 'gt');
 lh2 = plot(cellfun(@(x) x(1), xhat(1:k)), cellfun(@(x) x(2), xhat(1:k)), 'b', 'DisplayName', 'est');
 
 el = ellipse(xhat{k}(1:2),Phat{k}(1:2,1:2),5,200);
-%%plot(el(1,:),el(2,:),'b');
-% % 
-% % for ii=1:((size(Phat{k}, 1)-3)/2)
-% %    rI = squeeze(Phat{k}(3+[1,2]+(ii-1)*2,3+[1,2]+(ii-1)*2));
-% %    el = ellipse(xhat{k}(3 + (1:2) + (ii-1)*2),rI,5,200);
-% %    plot(el(1,:),el(2,:),'b');
-% % end
-% % 
-% % axis equal;
-% % title('results')
-% % legend([lh1, lh2])
-% % grid on;
-% % 
+plot(el(1,:),el(2,:),'b');
+
+for ii=1:((size(Phat{k}, 1)-3)/2)
+   rI = squeeze(Phat{k}(3+[1,2]+(ii-1)*2,3+[1,2]+(ii-1)*2));
+   el = ellipse(xhat{k}(3 + (1:2) + (ii-1)*2),rI,5,200);
+   plot(el(1,:),el(2,:),'b');
+end
+
+axis equal;
+title('results')
+legend([lh1, lh2])
+grid on;
+
 % % subplot(1,2,2);
 % % hold on;
 % % % funF = @(delta) sum([poseGT(1:2,k) - rotmat2d(delta(3)) * xhat(1:2,k) - delta(1:2), landmarks - rotmat2d(delta(3)) * reshape(xhat(4:end,k),2,[]) - delta(1:2)].^2 ,[1,2]);
@@ -116,23 +117,33 @@ el = ellipse(xhat{k}(1:2),Phat{k}(1:2,1:2),5,200);
 
 %% consistency: what to do with variable measurement size..?
 alpha = 0.05;
-ANIS = mean(NIS)
-ACI = chi2inv([alpha/2; 1 - alpha/2], 1)/N % NOT CORRECT NOW
-CI = chi2inv([alpha/2; 1 - alpha/2], 1); % NOT CORRECT NOW
-warning('These consistency intervals have wrong degrees of freedom')
+CI = zeros(1000, 2);
+% ACI = chi2inv([alpha/2; 1 - alpha/2], 1)/N; % NOT CORRECT NOW
+for n = 1:1000
+    CI(n, :) = chi2inv([alpha/2; 1 - alpha/2], degFreedom(n))/degFreedom(n); % NOT CORRECT NOW
+end        
+%warning('These consistency intervals have wrong degrees of freedom')
 
 figure(5); clf;
 hold on;
 plot(1:N, NIS(1:N));
-insideCI = mean((CI(1) < NIS) .* (NIS <= CI(2)))*100;
-plot([1, N], (CI*ones(1, 2))','r--');
+%insideCI = mean((CI(1) < NIS) .* (NIS <= CI(2)))*100;
+insideCI = 0;
+for n = 1:N
+    if (CI(n, 1) < NIS(n) * (NIS(n) <= CI(n, 2)))
+        insideCI = insideCI + 1;
+    end
+end
+insideCI = (insideCI/N)*100;
+
+plot([1:N], CI(:, 1), [1:N], CI(:, 2),'r--');
 
 title(sprintf('NIS over time, with %0.1f%% inside %0.1f%% CI', insideCI, (1-alpha)*100));
 grid on;
 ylabel('NIS');
 xlabel('timestep');
 
-% %% run a movie
+%% run a movie
 % pauseTime = 0.05;
 % fig = figure(4);
 % ax = gca;
@@ -158,4 +169,4 @@ xlabel('timestep');
 %     grid(ax, 'on');
 %     pause(pauseTime);
 % end
-        
+%         

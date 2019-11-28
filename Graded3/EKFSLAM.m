@@ -205,7 +205,7 @@ classdef EKFSLAM
             end
         end
         
-        function [etaupd, Pupd, NIS, a] = update(obj, eta, P, z)
+        function [etaupd, Pupd, NIS, a, degFreedom] = update(obj, eta, P, z)
             I_P = eye(size(P));
             numLmk = (numel(eta) - 3)/2; % number of landmarks
             if numLmk > 0
@@ -227,6 +227,11 @@ classdef EKFSLAM
                 etaupd = eta + W*v;
                 NIS = (v'/S)*v;
                 Pupd = (I_P - W*H)*P;
+               
+                degFreedom = length(v);
+                if degFreedom == 0
+                    degFreedom = 1;
+                end
                 
                 % sanity check, remove for speed
 %                 if any(eig(Pupd) <= 0) % costly, remove when tested
@@ -238,6 +243,8 @@ classdef EKFSLAM
                 NIS = 0;
                 etaupd = eta;
                 Pupd = P;
+                
+                degFreedom = 1;
             end
             
             % create new landmarks if any is available
