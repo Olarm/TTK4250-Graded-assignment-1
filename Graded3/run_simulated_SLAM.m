@@ -4,7 +4,7 @@ K = numel(z);
 Q = diag([0.05, 0.05, 0.5/180*pi]);
 R = diag([0.05, 0.5/180*pi]);
 doAsso = true;
-JCBBalphas = [0.5, 0.5e-5]; % first is for joint compatibility, second is individual 
+JCBBalphas = [0.5e-3, 0.5e-5]; % first is for joint compatibility, second is individual 
 slam = EKFSLAM(Q, R, doAsso, JCBBalphas);
 
 % allocate
@@ -18,6 +18,7 @@ a = cell(1, K);
 xpred{1} = poseGT(:,1); % we start at the correct position for reference
 Ppred{1} = zeros(3, 3); % we also say that we are 100% sure about that
 NIS = zeros(1, 1000);
+NEES = zeros(1, 1000);
 
 figure(10); clf;
 axAsso = gca;
@@ -49,6 +50,8 @@ for k = 1:N
         title(axAsso, sprintf('k = %d: %s', k, sprintf('%d, ',a{k})));
         %pause();
     end
+    err = xhat{k}(1:3) - poseGT(:, k);
+    NEES(k) = (err'/Phat{k}(1:3, 1:3))*err;
 end
 
 % plotting
@@ -125,6 +128,7 @@ end
 %warning('These consistency intervals have wrong degrees of freedom')
 
 figure(5); clf;
+subplot(2, 1, 1);
 hold on;
 plot(1:N, NIS(1:N));
 %insideCI = mean((CI(1) < NIS) .* (NIS <= CI(2)))*100;
@@ -143,6 +147,21 @@ grid on;
 ylabel('NIS');
 xlabel('timestep');
 
+
+subplot(2, 1, 2);
+plot(NEES, 'k');
+hold on;
+CI = chi2inv([alpha/2; 1 - alpha/2], 3);
+
+insideCI = mean((CI(1) <= NEES).* (NEES <= CI(2)));
+
+
+plot([0, 1000 - 1], (CI*ones(1,2))','r--');
+
+title(sprintf('NEES (%.3g%% inside %.3g%% confidence intervall)', 100*insideCI, 100*(1 - alpha)));
+grid on;
+ylabel('NEES');
+xlabel('Measurement GPS');
 %% run a movie
 % pauseTime = 0.05;
 % fig = figure(4);

@@ -4,17 +4,17 @@ dt = mean(IMUTs);
 K = size(zAcc,2);
 %% Measurement noise
 % GNSS Position  measurement
-p_std = [100, 100, 100]'; % Measurement noise
+p_std = [0.17, 0.16, 0.17]'; %[100, 100, 100]'; % Measurement noise
 RGNSS = diag(p_std.^2);
 
 % accelerometer
-qA = 10;%1^2; % accelerometer measurement noise covariance
-qAb = 1000;%(0.1*10^(-9))^2; % accelerometer bias driving noise covariance
+qA = 0.00015;%10;%1^2; % accelerometer measurement noise covariance
+qAb = 0.00002;%(0.1*10^(-9))^2; % accelerometer bias driving noise covariance
 pAcc = 10^12; % accelerometer bias reciprocal time constant
 
-qG = 2;%0.01^2; % gyro measurement noise covariance
-qGb = 1;%(0.1*10^(-9))^2;  % gyro bias driving noise covariance
-pGyro = 10^12; % gyrp bias time constant
+qG = 5e-7;%2;%0.01^2; % gyro measurement noise covariance
+qGb = 1e-7; %1;%(0.1*10^(-9))^2;  % gyro bias driving noise covariance
+pGyro = 10^(2); %10^12; % gyrp bias time constant
 
 
 %% Estimator
@@ -123,3 +123,4 @@ gaussCompare = sum(randn(3, numel(NIS)).^2, 1);
 boxplot([NIS', gaussCompare'],'notch','on',...
         'labels',{'NIS','gauss'});
 grid on;
+

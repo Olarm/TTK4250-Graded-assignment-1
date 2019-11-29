@@ -74,8 +74,8 @@ classdef ESKF
             dq = Ts * omega;
             quatPred = quatProd(quat, euler2quat(dq));
             
-            accBiasPred = -(1/obj.pAcc)*eye(3)*accBias;%  is eye needed?
-            gyroBiasPred = -(1/obj.pGyro)*eye(3)*gyroBias;%
+            accBiasPred = -(1/obj.pAcc)*eye(3)*accBias*Ts;%  is eye needed?
+            gyroBiasPred = -(1/obj.pGyro)*eye(3)*gyroBias*Ts;%
             
             % make sure quaternion is normalized
             quatPred = quatPred/norm(quatPred);% 
