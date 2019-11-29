@@ -162,12 +162,12 @@ classdef IMMPDAF
                     joint(i, j) = sprobs(i,j)*beta(j);
                 end
                 sprobsred(i) = sum(joint(i, :));
-
+                
+                %betaCondS = joint \ sprobsred %... association probabilites conditionend on the mode probabilites (M x m + 1)
+                betaCondS(i,:) = joint(i,:)./sprobsred(i);
             end
             
-            %betaCondS = joint \ sprobsred %... association probabilites conditionend on the mode probabilites (M x m + 1)
-            betaCondS(1,:) = joint(1,:)./sprobsred(1);
-            betaCondS(2,:) = joint(2,:)./sprobsred(2);
+
             
             xSize = size(x);
             PSize = size(P);

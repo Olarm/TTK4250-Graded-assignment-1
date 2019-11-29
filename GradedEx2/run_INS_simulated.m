@@ -106,13 +106,13 @@ figure(2); clf; hold on;
 subplot(5,1,1);
 plot((0:(N-1))*dt, xest(1:3, 1:N))
 grid on;
-ylabel('NED position [m]')
+ylabel({'NED position'; '[m]'})
 legend('North', 'East', 'Down')
 
 subplot(5,1,2);
 plot((0:(N-1))*dt, xest(4:6, 1:N))
 grid on;
-ylabel('Velocitites [m/s]')
+ylabel({'Velocitites'; '[m/s]'})
 legend('North', 'East', 'Down')
 
 subplot(5,1,3);
@@ -120,18 +120,18 @@ plot((0:(N-1))*dt, eul(:, 1:N)*180/pi)
 hold on
 %plot((0:(N-1))*dt, euler_out(:, 1:N)*180/pi)
 grid on;
-ylabel('euler angles [deg]')
+ylabel({'euler angles'; '[deg]'})
 legend('\phi', '\theta', '\psi')
 
 subplot(5, 1, 4)
 plot((0:(N-1))*dt, xest(11:13, 1:N))
 grid on;
-ylabel('Accl bias [m/s^2]')
+ylabel({'Accl bias'; '[m/s^2]'})
 legend('x', 'y', 'z')
 subplot(5, 1, 5)
 plot((0:(N-1))*dt, xest(14:16, 1:N)*180/pi * 3600)
 grid on;
-ylabel('Gyro bias [deg/h]')
+ylabel({'Gyro bias'; '[deg/h]'})
 legend('x', 'y', 'z')
 
 %suptitle('States estimates');
@@ -142,7 +142,7 @@ figure(3); clf; hold on;
 subplot(5,1,1);
 plot((0:(N-1))*dt, deltaX(1:3,:))
 grid on;
-ylabel('NED position error [m]')
+ylabel({'NED position'; 'error [m]'})
 legend(sprintf('North (%.3g)', sqrt(mean(deltaX(1, 1:N).^2))),...
     sprintf('East (%.3g)', sqrt(mean(deltaX(2, 1:N).^2))),...
     sprintf('Down (%.3g)', sqrt(mean(deltaX(3, 1:N).^2))))
@@ -150,7 +150,7 @@ legend(sprintf('North (%.3g)', sqrt(mean(deltaX(1, 1:N).^2))),...
 subplot(5,1,2);
 plot((0:(N-1))*dt, deltaX(4:6, 1:N))
 grid on;
-ylabel('Velocitites error [m/s]')
+ylabel({'Velocitites'; 'error [m/s]'})
 legend(sprintf('North (%.3g)', sqrt(mean(deltaX(4, 1:N).^2))),...
     sprintf('East (%.3g)', sqrt(mean(deltaX(5, 1:N).^2))),...
     sprintf('Down (%.3g)', sqrt(mean(deltaX(6, 1:N).^2))))
@@ -158,7 +158,7 @@ legend(sprintf('North (%.3g)', sqrt(mean(deltaX(4, 1:N).^2))),...
 subplot(5,1,3);
 plot((0:(N-1))*dt, wrapToPi(eul(:, 1:N) - eul_true(:, 1:N))*180/pi)
 grid on;
-ylabel('euler angles error [deg]')
+ylabel({'euler angles'; 'error [deg]'})
 legend(sprintf('\\phi (%.3g)', sqrt(mean((eul(1, 1:N) - eul_true(1, 1:N)).^2))),...
     sprintf('\\theta (%.3g)', sqrt(mean((eul(2, 1:N) - eul_true(2, 1:N)).^2))),...
     sprintf('\\psi (%.3g)', sqrt(mean((eul(3, 1:N) - eul_true(3, 1:N)).^2))))
@@ -166,7 +166,7 @@ legend(sprintf('\\phi (%.3g)', sqrt(mean((eul(1, 1:N) - eul_true(1, 1:N)).^2))),
 subplot(5, 1, 4)
 plot((0:(N-1))*dt, deltaX(10:12, 1:N))
 grid on;
-ylabel('Accl bias error [m/s^2]')
+ylabel({'Accl bias'; 'error [m/s^2]'})
 legend(sprintf('x (%.3g)', sqrt(mean(deltaX(1, 1:N).^2))),...
     sprintf('y (%.3g)', sqrt(mean(deltaX(11, 1:N).^2))),...
     sprintf('z (%.3g)', sqrt(mean(deltaX(12, 1:N).^2))))
@@ -174,7 +174,7 @@ legend(sprintf('x (%.3g)', sqrt(mean(deltaX(1, 1:N).^2))),...
 subplot(5, 1, 5)
 plot((0:(N-1))*dt, deltaX(13:15, 1:N)*180/pi);
 grid on;
-ylabel('Gyro bias error [deg/s]')
+ylabel({'Gyro bias'; 'error [deg/s]'})
 legend(sprintf('x (%.3g)', sqrt(mean(((deltaX(13, 1:N))*180/pi).^2))),...
     sprintf('y (%.3g)', sqrt(mean(((deltaX(14, 1:N))*180/pi).^2))),...
     sprintf('z (%.3g)', sqrt(mean(((deltaX(15, 1:N))*180/pi).^2))))
@@ -186,14 +186,14 @@ figure(4); clf; hold on;
 subplot(2,1,1); hold on;
 plot((0:(N-1))*dt, sqrt(sum(deltaX(1:3, 1:N).^2,1)))
 plot((0:100:(N-1))*dt, sqrt(sum((xtrue(1:3, 100:100:N) - zGNSS(:, 1:GNSSk-1)).^2,1)))
-ylabel('Position error [m]')
+ylabel({'Position'; 'error [m]'})
 grid on;
 legend(sprintf('estimation error (%.3g)',sqrt(mean(sum(deltaX(1:3, 1:N).^2,1))) ),...
     sprintf('measurement error (%.3g)', sqrt(mean(sum((xtrue(1:3, 100:100:N) - zGNSS(:, 1:GNSSk-1)).^2,1)))));
 
 subplot(2,1,2);
 plot((0:(N-1))*dt, sqrt(sum(deltaX(4:6, 1:N).^2, 1)))
-ylabel('Speed error [m/s]');
+ylabel({'Speed'; 'error [m/s]'});
 title(sprintf('RMSE: %.3g', sqrt(mean(sum(deltaX(4:6, 1:N).^2, 1)))));
 grid on;
 
